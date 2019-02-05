@@ -2,10 +2,10 @@ import json
 
 from websocket import create_connection
 
-from configuration import TRACKED_PAIRS
+from configuration import TRACKED_PAIRS, WS_URL
 from data.storage import Storage
 
-ws = create_connection("wss://ws-sandbox.kraken.com")
+ws = create_connection(WS_URL)
 
 
 def send(data):
@@ -48,21 +48,23 @@ def parse_event(data_obj: dict):
 
 
 def parse_payload(data_obj):
-    channel_id, payload = data_obj
+    channel_id = data_obj[0]
+    payloads=data_obj[1:]
     pair = channel_to_pair[channel_id]
     storage = pair_to_storage[pair]
-    for key, value in payload.items():
-        if key not in ["as", "bs", "a", "b"]:
-            raise AssertionError("Unknown key " + key)
+    for payload in payloads:
+        for key, value in payload.items():
+            if key not in ["as", "bs", "a", "b"]:
+                raise AssertionError("Unknown key " + key)
 
-        snapshot = len(key) == 2
-        is_buy = key[0] == "b"
+            snapshot = len(key) == 2
+            is_buy = key[0] == "b"
 
-        if snapshot:
-            storage.reset(is_buy)
+            if snapshot:
+                storage.reset(is_buy)
 
-        for price_s, amount_s, timestamp_s in value:
-            storage.write(is_buy, float(price_s), float(amount_s), float(timestamp_s))
+            for price_s, amount_s, timestamp_s in value:
+                storage.write(is_buy, float(price_s), float(amount_s), float(timestamp_s))
 
 
 while True:

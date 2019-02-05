@@ -1,3 +1,6 @@
+#WS_URL = "wss://ws-sandbox.kraken.com"
+WS_URL = "wss://ws.kraken.com"
+
 TRACKED_PAIRS = ["ADA/CAD", "ADA/ETH", "ADA/EUR", "ADA/USD", "ADA/XBT", "BCH/EUR", "BCH/USD", "BCH/XBT", "BSV/EUR",
                  "BSV/USD", "BSV/XBT", "DASH/EUR", "DASH/USD", "DASH/XBT", "EOS/ETH", "EOS/EUR", "EOS/USD", "EOS/XBT",
                  "GNO/ETH", "GNO/EUR", "GNO/USD", "GNO/XBT", "QTUM/CAD", "QTUM/ETH", "QTUM/EUR", "QTUM/USD", "QTUM/XBT",
