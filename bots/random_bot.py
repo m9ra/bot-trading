@@ -9,7 +9,7 @@ class RandomBot(BotBase):
         history = portfolio.get_history2(seconds_back=60)
         present = portfolio.get_history2(seconds_back=0)
 
-        if not history.is_available:
+        if not history.is_available or not present.is_available:
             # the requested history is not available (probably too long to the past?)
             return
 

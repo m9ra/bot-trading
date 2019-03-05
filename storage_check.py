@@ -1,6 +1,7 @@
-from time import sleep
+import time
 
-from configuration import TRACKED_PAIRS, BOOK_DEPTH
+from configuration import TRACKED_PAIRS
+from core.processors.pricebook_processor import PricebookProcessor
 from data.storage_reader import StorageReader
 
 last_entry_counts = []
@@ -10,23 +11,19 @@ for pair in TRACKED_PAIRS:
     readers.append(reader)
     last_entry_counts.append(0)
 
-    drange = reader.get_date_range()
+for reader in readers:
+    entry_count = reader.get_entry_count()
+    processor = PricebookProcessor(reader.pair)
+    start = time.time()
+    for i in range(entry_count):
+        entry = reader.get_entry(i)
+        processor.accept(entry)
 
-    print(reader.pair)
-    print(reader.get_entry_count())
-    print(drange)
+    end = time.time()
 
-    last_start_index = 0
-    slots = 10000
-    for i in range(slots):
-        date_diff = drange[1] - drange[0]
-        date = drange[0] + date_diff / slots * i
-        start = reader.find_pricebook_start(date, BOOK_DEPTH)
+    duration = end - start
 
-        if last_start_index > start:
-            print(f"Incorrect start finding algorithm: {last_start_index} {start} {date}")
-
-        last_start_index = start
+    print(f"{reader.pair} {entry_count} {entry_count / duration} {duration}")
 
 while True:
     has_update = False
@@ -41,4 +38,4 @@ while True:
     if has_update:
         print("==============")
 
-    sleep(1)
+    time.sleep(1)

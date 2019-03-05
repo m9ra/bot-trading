@@ -1,6 +1,5 @@
 from typing import List
 
-from configuration import BOOK_DEPTH
 from data.parsing import make_pair, parse_pair, reverse_pair
 from data.storage_reader import StorageReader
 from data.trade_entry import TradeEntry
