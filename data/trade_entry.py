@@ -32,3 +32,4 @@ class TradeEntry(object):
             result = "reset " + result
 
         return result
+

@@ -15,8 +15,7 @@ for reader in readers:
     entry_count = reader.get_entry_count()
     processor = PricebookProcessor(reader.pair)
     start = time.time()
-    for i in range(entry_count):
-        entry = reader.get_entry(i)
+    for entry in reader._parse_entry_block(0, entry_count):
         processor.accept(entry)
 
     end = time.time()

@@ -1,8 +1,9 @@
 import struct
 from io import SEEK_SET, SEEK_END
 from math import floor
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
+from data.storage_index import StorageIndex
 from data.storage_writer import StorageWriter
 from data.trade_entry import TradeEntry
 
@@ -25,6 +26,17 @@ class StorageReader(object):
 
     def get_peek_index(self) -> int:
         return self._peek_entry_index
+
+    def update_index(self, index: StorageIndex):
+        max_block_entry_count = 1000
+        entry_count = self.get_entry_count()
+        next_entry_index = index.last_entry_index + 1
+        while next_entry_index < entry_count:
+            block_entry_count = min(max_block_entry_count, entry_count - next_entry_index)
+
+            entry_block = self._read_block(next_entry_index, block_entry_count)
+            index.accept_block(entry_block)
+            next_entry_index += block_entry_count
 
     def get_date_range(self) -> Optional[Tuple[float, float]]:
         entry_count = self.get_entry_count()
@@ -127,6 +139,19 @@ class StorageReader(object):
         self._seek_entry(index)
         current_entry = self._parse_current_entry()
         return current_entry
+
+    def _parse_entry_block(self, index, entry_count) -> List[TradeEntry]:
+        self._seek_entry(index)
+
+        block_size = StorageWriter.entry_size * entry_count
+        block_chunk = self._file.read(block_size)
+        if (len(block_chunk) != block_size):
+            raise AssertionError(
+                f"Incorrect block chunk returned, requrested len {block_size} but got {len(block_chunk)}")
+
+        for start in range(0, block_size, StorageWriter.entry_size):
+            chunk = block_chunk[start:start + StorageWriter.entry_size]
+            yield TradeEntry(self.pair, chunk)
 
     def _parse_current_entry(self) -> TradeEntry:
         chunk = self._file.read(StorageWriter.entry_size)
