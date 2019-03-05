@@ -1,4 +1,3 @@
-import struct
 from io import SEEK_SET, SEEK_END
 from math import floor
 from typing import Tuple, Optional, List
@@ -147,7 +146,7 @@ class StorageReader(object):
         block_chunk = self._file.read(block_size)
         if (len(block_chunk) != block_size):
             raise AssertionError(
-                f"Incorrect block chunk returned, requrested len {block_size} but got {len(block_chunk)}")
+                f"Incorrect block chunk returned, requested len {block_size} but got {len(block_chunk)}")
 
         for start in range(0, block_size, StorageWriter.entry_size):
             chunk = block_chunk[start:start + StorageWriter.entry_size]

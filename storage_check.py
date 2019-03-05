@@ -1,7 +1,7 @@
 import time
 
 from configuration import TRACKED_PAIRS
-from core.processors.pricebook_processor import PricebookProcessor
+from data.storage_index import StorageIndex
 from data.storage_reader import StorageReader
 
 last_entry_counts = []
@@ -13,11 +13,9 @@ for pair in TRACKED_PAIRS:
 
 for reader in readers:
     entry_count = reader.get_entry_count()
-    processor = PricebookProcessor(reader.pair)
+    index = StorageIndex(reader.pair)
     start = time.time()
-    for entry in reader._parse_entry_block(0, entry_count):
-        processor.accept(entry)
-
+    index.update_by(reader._parse_entry_block(0, entry_count))
     end = time.time()
 
     duration = end - start

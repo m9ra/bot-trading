@@ -11,7 +11,7 @@ class PricebookProcessor(ProcessorBase):
         self._w_sell_container = {}
         self._w_buy_container = {}
 
-        self._depth = BOOK_DEPTH
+        self._current_time = 0
 
     @property
     def is_ready(self):
@@ -38,6 +38,8 @@ class PricebookProcessor(ProcessorBase):
             self._w_sell_container = {}
 
     def write(self, is_buy, price, amount, timestamp):
+        self._current_time = max(self._current_time, timestamp)
+
         container = self._w_buy_container if is_buy else self._w_sell_container
         if amount == 0.0:
             if price in container:
@@ -45,23 +47,22 @@ class PricebookProcessor(ProcessorBase):
         else:
             container[price] = amount
 
-        if len(container) > self._depth:
-            new_container = dict(sorted(container.items(), key=lambda i: i[0], reverse=is_buy)[0:self._depth])
-            container.clear()
-            container.update(new_container)
+        if len(container) > BOOK_DEPTH:
+            largest_key = max(container.keys())
+            del container[largest_key]
 
         if is_buy:
             if self._w_buy_container is self._buy_container:
                 return
 
-            if len(self._w_buy_container) >= self._depth:
+            if len(self._w_buy_container) >= BOOK_DEPTH:
                 self._buy_container = self._w_buy_container
 
         else:
             if self._w_sell_container is self._sell_container:
                 return
 
-            if len(self._w_sell_container) >= self._depth:
+            if len(self._w_sell_container) >= BOOK_DEPTH:
                 self._sell_container = self._w_sell_container
 
     def flush(self):

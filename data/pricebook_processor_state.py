@@ -1,4 +1,4 @@
-class PricebookViewState(object):
+class PricebookProcessorState(object):
     def __init__(self, current_index, timestamp):
         self.current_index = current_index
         self.current_time = timestamp

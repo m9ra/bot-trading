@@ -2,11 +2,11 @@ from core.processors.pricebook_processor import PricebookProcessor
 from data.parsing import parse_pair
 from data.trade_entry import TradeEntry
 from trading.fund import Fund
-from trading.pricebook_view_state import PricebookViewState
+from data.pricebook_processor_state import PricebookProcessorState
 
 
 class PricebookView(object):
-    def __init__(self, state: PricebookViewState, update_reader, end_index):
+    def __init__(self, state: PricebookProcessorState, update_reader, end_index):
         self._reader = update_reader
         self.source_currency, self.target_currency = parse_pair(self._reader.pair)
 
@@ -68,7 +68,7 @@ class PricebookView(object):
         self._current_time = max(self._current_time, entry.timestamp)
 
     def _dump_state(self):
-        state = PricebookViewState(self._current_index, self._current_time)
+        state = PricebookProcessorState(self._current_index, self._current_time)
         state.load_from(self._processor)
 
         return state

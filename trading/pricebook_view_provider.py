@@ -2,7 +2,7 @@ from typing import Optional
 
 from configuration import BOOK_DEPTH
 from trading.pricebook_view import PricebookView
-from trading.pricebook_view_state import PricebookViewState
+from data.pricebook_processor_state import PricebookProcessorState
 
 
 class PricebookViewProvider(object):
@@ -32,7 +32,7 @@ class PricebookViewProvider(object):
 
             start_index = max(0, min(start_index, end_index - BOOK_DEPTH * 2 - 2))
             print(f"{self._reader.pair} {timestamp} start: {start_index}, end: {end_index}")
-            cached_state = PricebookViewState(start_index, 0)
+            cached_state = PricebookProcessorState(start_index, 0)
 
         view = PricebookView(cached_state, reader, end_index)
         view.fast_forward_to(timestamp)
@@ -43,7 +43,7 @@ class PricebookViewProvider(object):
 
         return view
 
-    def _get_fastforwardable_cache_entry(self, timestamp) -> Optional[PricebookViewState]:
+    def _get_fastforwardable_cache_entry(self, timestamp) -> Optional[PricebookProcessorState]:
 
         best_state = None
         best_forward_time = float("inf")
@@ -64,7 +64,7 @@ class PricebookViewProvider(object):
 
         return best_state
 
-    def _put_to_cache(self, state: PricebookViewState):
+    def _put_to_cache(self, state: PricebookProcessorState):
         while len(self._state_cache) + 1 >= PricebookViewProvider.cached_pricebook_view_state_count_limit:
             del self._state_cache[-1]
 

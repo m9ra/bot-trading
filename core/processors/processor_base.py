@@ -1,4 +1,4 @@
-from data.storage_reader import TradeEntry
+from data.trade_entry import TradeEntry
 
 
 class ProcessorBase(object):
