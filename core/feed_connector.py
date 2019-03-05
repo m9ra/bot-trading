@@ -1,16 +1,20 @@
 import json
 import logging
 from time import sleep
-
-from data.storage import Storage
+from typing import Callable, List
 
 from websocket import create_connection
 
+from configuration import BOOK_DEPTH
+from core.processors.processor_base import ProcessorBase
+
 
 class FeedWriter(object):
-    def __init__(self, ws_url, pairs):
-        self._ws_url = ws_url
+    def __init__(self, feed_ws_url: str, pairs: List[str], processor_factory: Callable[[str], ProcessorBase]):
+        self._feed_ws_url = feed_ws_url
         self._pairs = pairs
+        self._processor_factory = processor_factory
+        self._pair_to_processor = None
 
         # configure logging
         formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -26,11 +30,9 @@ class FeedWriter(object):
         root_logger.setLevel(logging.DEBUG)
 
         self._logger = root_logger
-
         self._logger.info("LOGGER INITIALIZED")
 
     def run(self):
-
         while True:
             try:
                 self._run()
@@ -42,22 +44,21 @@ class FeedWriter(object):
     def _run(self):
         logging.info("_run starts")
 
-        self._ws = create_connection(self._ws_url)
+        self._channel_to_pair = {}
+        self._pair_to_processor = {}
+        self._initialize_processors()
+
+        self._ws = create_connection(self._feed_ws_url)
 
         self.receive()
         self.send({
             "event": "subscribe",
             "pair": self._pairs,
             "subscription": {
-                "name": "book"
+                "name": "book",
+                "depth": BOOK_DEPTH
             }
         })
-
-        self.pair_to_storage = {}
-        self.channel_to_pair = {}
-
-        for pair in self._pairs:
-            self.pair_to_storage[pair] = Storage(pair)
 
         parsed_events = 0
         while True:
@@ -74,14 +75,18 @@ class FeedWriter(object):
             if parsed_events % 1e5 == 0:
                 logging.info(f"\t events collected: {parsed_events}")
 
+    def _initialize_processors(self):
+        for pair in self._pairs:
+            processor = self._processor_factory(pair)
+            self._pair_to_processor[pair] = processor
+
     def send(self, data):
         json_data = json.dumps(data)
-        print(f">> {json_data}")
+        self._logger.info(f">> {json_data}")
         self._ws.send(json_data)
 
     def receive(self):
         data = self._ws.recv()
-        print(f"<< {data}")
         return data
 
     def parse_event(self, data_obj: dict):
@@ -89,7 +94,7 @@ class FeedWriter(object):
         if event == "subscriptionStatus":
             channel_id = data_obj["channelID"]
             pair = data_obj["pair"]
-            self.channel_to_pair[channel_id] = pair
+            self._channel_to_pair[channel_id] = pair
 
             if data_obj["status"] != "subscribed":
                 raise AssertionError("Invalid subscription status")
@@ -97,8 +102,8 @@ class FeedWriter(object):
     def parse_payload(self, data_obj):
         channel_id = data_obj[0]
         payloads = data_obj[1:]
-        pair = self.channel_to_pair[channel_id]
-        storage = self.pair_to_storage[pair]
+        pair = self._channel_to_pair[channel_id]
+        processor = self._pair_to_processor[pair]
         for payload in payloads:
             for key, value in payload.items():
                 if key not in ["as", "bs", "a", "b"]:
@@ -108,7 +113,9 @@ class FeedWriter(object):
                 is_buy = key[0] == "b"
 
                 if snapshot:
-                    storage.reset(is_buy)
+                    processor.reset(is_buy)
 
                 for price_s, amount_s, timestamp_s in value:
-                    storage.write(is_buy, float(price_s), float(amount_s), float(timestamp_s))
+                    processor.write(is_buy, float(price_s), float(amount_s), float(timestamp_s))
+
+        processor.flush()

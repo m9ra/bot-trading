@@ -1,5 +1,7 @@
 from configuration import TRACKED_PAIRS, WS_URL
-from core.feed_writer import FeedWriter
+from core.feed_connector import FeedWriter
+from core.processors.storage_processor import StorageProcessor
 
-writer = FeedWriter(WS_URL, TRACKED_PAIRS)
+tracked_pairs = TRACKED_PAIRS
+writer = FeedWriter(WS_URL, tracked_pairs, StorageProcessor)
 writer.run()
