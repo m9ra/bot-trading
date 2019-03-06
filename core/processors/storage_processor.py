@@ -9,15 +9,11 @@ ACTIVE_STORAGES: Dict[str, StorageWriter] = {}
 
 class StorageProcessor(ProcessorBase):
     def __init__(self, pair: str):
-        if pair in ACTIVE_STORAGES:
-            try:
-                ACTIVE_STORAGES[pair].close()
-            except Exception as e:
-                traceback.print_exc()
+        if pair not in ACTIVE_STORAGES:
+            ACTIVE_STORAGES[pair] = StorageWriter(pair)
 
+        self._storage = ACTIVE_STORAGES[pair]
         self._pair = pair
-        self._storage = StorageWriter(pair)
-        ACTIVE_STORAGES[pair] = self._storage
 
     def write(self, *args, **kwargs):
         print(f"write {self._pair} {args + tuple(kwargs.values())}")

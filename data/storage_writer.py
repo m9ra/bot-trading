@@ -1,54 +1,90 @@
 import datetime
 import os
-import struct
 
-from typing import List
-
+from core.processors.pricebook_processor import PricebookProcessor
 from data.parsing import get_pair_id
+from data.trade_entry import TradeEntry
 
 
 class StorageWriter(object):
     root_path = "log"
-    entry_size = 1 + 3 * 8
+    bucket_entry_count = 1000  # how often full pricebook will be written
+    file_entry_count = 1_000_000
 
     @classmethod
-    def get_storage_path(cls, pair):
+    def get_storage_path(cls, pair: str, file_number: int):
         pair_id = get_pair_id(pair)
-        path = os.path.join(cls.root_path, f"pair_{pair_id}.book")
+        path = os.path.join(cls.root_path, f"{pair_id}/pair_{pair_id}_{file_number}.book")
         return path
 
-    @classmethod
-    def float_to_8b(cls, value: float) -> List:
-        result = list(bytearray(struct.pack("<d", value)))
-        if len(result) != 8:
-            raise AssertionError(f"Float encoding produces incorrect format {result}")
-
-        return result
-
     def __init__(self, pair: str):
-        path = self.get_storage_path(pair)
+        self._pair = pair
+        dirpath = os.path.dirname(self.get_storage_path(self._pair, 0))
+        os.makedirs(dirpath, exist_ok=True)
 
-        directory = os.path.dirname(path)
-        os.makedirs(directory, exist_ok=True)
+        self._next_entry_index = self._load_entry_index()
+        self._pricebook = PricebookProcessor(self._pair)
+        self._current_file = None
 
-        self._abs_path = os.path.abspath(path)
-        self._file = open(self._abs_path, "ab")
+    def _load_entry_index(self):
+        i = 0
+        while True:
+            i += 1
+            file_path = self.get_storage_path(self._pair, i)
+            if not os.path.exists(file_path):
+                i -= 1
+                if i == 0:
+                    return 0
+
+                size = os.path.getsize(self.get_storage_path(self._pair, i))
+                return i * self.file_entry_count + int(size / TradeEntry.chunk_size)
+
+    def _open_next_file(self):
+        file_number = int(self._next_entry_index / self.file_entry_count)
+        path = self.get_storage_path(self._pair, file_number)
+
+        abs_path = os.path.abspath(path)
+        return open(abs_path, "ab")
 
     def write(self, is_buy: bool, price: float, volume: float, timestamp: float):
-        buy_byte = 1 if is_buy else 0
-        self._write_raw(buy_byte, price, volume, timestamp)
-
-    def _write_raw(self, buy_byte, price, volume, timestamp):
-        chunk = [buy_byte] + StorageWriter.float_to_8b(price) + StorageWriter.float_to_8b(
-            volume) + StorageWriter.float_to_8b(timestamp)
-        self._file.write(bytearray(chunk))
+        self._handle_write(is_buy, price, volume, timestamp, is_reset=False)
 
     def reset(self, is_buy):
-        buy_byte = 255 if is_buy else 254
-        self._write_raw(buy_byte, 0, 0, datetime.datetime.utcnow().timestamp())
+        self._handle_write(is_buy, 0.0, 0.0, datetime.datetime.utcnow().timestamp(), is_reset=True)
 
     def flush(self):
-        self._file.flush()
+        self._current_file.flush()
 
-    def close(self):
-        self._file.close()
+    def _handle_write(self, is_buy, price, volume, timestamp, is_reset):
+        entry = TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, is_reset, is_service=False)
+
+        self._pricebook.accept(entry)
+
+        need_new_file = self._next_entry_index % self.file_entry_count == 0
+        need_new_bucket = self._next_entry_index % self.bucket_entry_count == 0
+
+        if not need_new_bucket and not need_new_file:
+            # simple write through
+            chunk = TradeEntry.to_chunk(entry)
+            self._write_chunk(chunk)
+            return  # a usual entry, no special action to handle it
+        elif self._pricebook.is_ready:
+            return  # wait until pricebook is initialized (for the first time)
+
+        if need_new_file:
+            if self._current_file:
+                self._current_file.close()
+            self._current_file = None
+
+        if need_new_bucket:
+            service_entries = self._pricebook.dump_to_entries()
+            for entry in service_entries:
+                chunk = TradeEntry.to_chunk(entry)
+                self._write_chunk(chunk)
+
+    def _write_chunk(self, chunk):
+        if self._current_file is None:
+            self._current_file = self._open_next_file()
+        self._current_file.write(bytes(chunk))
+        self._next_entry_index += 1
+

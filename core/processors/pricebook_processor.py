@@ -1,5 +1,8 @@
+from typing import List
+
 from configuration import BOOK_DEPTH
 from core.processors.processor_base import ProcessorBase
+from data.trade_entry import TradeEntry
 
 
 class PricebookProcessor(ProcessorBase):
@@ -11,7 +14,7 @@ class PricebookProcessor(ProcessorBase):
         self._w_sell_container = {}
         self._w_buy_container = {}
 
-        self._current_time = 0
+        self._current_time = 0.0
 
     @property
     def is_ready(self):
@@ -45,7 +48,7 @@ class PricebookProcessor(ProcessorBase):
             if price in container:
                 del container[price]
         else:
-            container[price] = amount
+            container[price] = (amount, timestamp)
 
         if len(container) > BOOK_DEPTH:
             largest_key = max(container.keys())
@@ -86,10 +89,36 @@ class PricebookProcessor(ProcessorBase):
 
         acc = 0.0
         for i in range(len(borders)):
-            border_value = borders[i][1]
+            border_value = borders[i][1][0]
             acc += border_value
             new_border = list(borders[i])
             new_border[1] = acc
             borders[i] = tuple(new_border)
 
         return borders
+
+    def dump_to_entries(self) -> List[TradeEntry]:
+        result = []
+        result.extend(self._dump_container(self._buy_container, is_buy=True, is_service=True))
+        result.extend(self._dump_container(self._sell_container, is_buy=False, is_service=True))
+
+        if self._buy_container is not self._w_buy_container:
+            result.extend(self._dump_container(self._w_buy_container, is_buy=True, is_service=False))
+
+        if self._sell_container is not self._w_sell_container:
+            result.extend(self._dump_container(self._w_sell_container, is_buy=False, is_service=False))
+
+        return result
+
+    def _dump_container(self, container, is_buy, is_service):
+        if container is None:
+            return
+
+        if is_service:
+            # one of the buy/sell service entries will be used as top level index
+            yield TradeEntry.create_entry(self._pair, is_buy, 0.0, 0.0, self._current_time, is_reset=True,
+                                          is_service=True)
+
+        for price, (volume, timestamp) in container.items():
+            yield TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, is_reset=False,
+                                          is_service=is_service)

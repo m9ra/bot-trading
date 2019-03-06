@@ -3,7 +3,7 @@ import logging
 from time import sleep
 from typing import Callable, List
 
-from websocket import create_connection
+from websocket import create_connection, WebSocketConnectionClosedException, WebSocketBadStatusException
 
 from configuration import BOOK_DEPTH
 from core.processors.processor_base import ProcessorBase
@@ -36,6 +36,10 @@ class FeedWriter(object):
         while True:
             try:
                 self._run()
+            except WebSocketConnectionClosedException:
+                logging.warning("Connection closed exception")
+            except WebSocketBadStatusException:
+                logging.warning("Websocket bad status exception")
             except:
                 logging.exception("_run raised an exception")
 
