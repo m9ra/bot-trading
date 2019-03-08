@@ -1,9 +1,6 @@
 import time
-from typing import Dict
 
 from bots.bot_base import BotBase
-from configuration import BOOK_DEPTH
-from core.processors.pricebook_processor import PricebookProcessor
 from data.storage_reader import TradeEntry
 from trading.market import Market
 from trading.portfolio_controller import PortfolioController
@@ -25,10 +22,12 @@ class BotExecutor(object):
         self._bot_slack = 0.0  # compensates for bot calculation time
         self._last_bot_update = 0
 
-    def run(self):
-        while True:
-            self._market.next_step()
-            self._register(self._market.current_time)
+    def start(self):
+        self._market.subscribe(self)
+
+    def receive(self, entry: TradeEntry):
+        # todo right now executor is not taking advantage of the entry received
+        self._register(self._market.current_time)
 
     def _register(self, timestamp):
         self._update_slack(timestamp)

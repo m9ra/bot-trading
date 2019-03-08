@@ -1,5 +1,6 @@
 import datetime
 import os
+from typing import Tuple
 
 from core.processors.pricebook_processor import PricebookProcessor
 from data.parsing import get_pair_id
@@ -16,6 +17,10 @@ class StorageWriter(object):
         pair_id = get_pair_id(pair)
         path = os.path.join(cls.root_path, f"{pair_id}/pair_{pair_id}_{file_number}.book")
         return path
+
+    @classmethod
+    def get_file_index(cls, entry_index: int) -> Tuple[int, int]:
+        return int(entry_index / cls.file_entry_count), entry_index % cls.file_entry_count
 
     def __init__(self, pair: str):
         self._pair = pair
@@ -68,8 +73,8 @@ class StorageWriter(object):
             chunk = TradeEntry.to_chunk(entry)
             self._write_chunk(chunk)
             return  # a usual entry, no special action to handle it
-        elif self._pricebook.is_ready:
-            return  # wait until pricebook is initialized (for the first time)
+        elif not self._pricebook.is_ready:
+            return  # wait until pricebook is initialized (for the first time, when service record is to be created)
 
         if need_new_file:
             if self._current_file:
@@ -87,4 +92,3 @@ class StorageWriter(object):
             self._current_file = self._open_next_file()
         self._current_file.write(bytes(chunk))
         self._next_entry_index += 1
-

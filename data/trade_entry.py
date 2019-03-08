@@ -14,23 +14,28 @@ class TradeEntry(object):
         self.real_utc_timestamp: float = None
 
         # buy_byte + 8b price + 8b volume + 8b timestamp
-        buy_byte, self.price, self.volume, self.timestamp = struct.unpack("<Bddd", chunk)
+        info_byte, self.price, self.volume, self.timestamp = struct.unpack("<Bddd", chunk)
 
         self.is_reset = False
         self.is_service_entry = False
 
-        if buy_byte <= 1:
-            self.is_buy = buy_byte
-        if buy_byte <= 128:
-            self.is_buy = buy_byte - 127
-            self.is_service_entry = True
-        else:
-            self.is_buy = buy_byte - 254
-            self.is_reset = True
-            self.real_utc_timestamp = self.timestamp
-            self.timestamp = 0.0
+        self.is_buy = bool(info_byte & 1)
+        self.is_reset = bool(info_byte & 2)
+        self.is_service_entry = bool(info_byte & 4)
 
-        self.is_buy = bool(self.is_buy)
+        if self.is_reset and not self.is_service_entry:
+            self.real_utc_timestamp = self.timestamp
+
+    @classmethod
+    def create_chunk(cls, is_buy, price, volume, timestamp, is_reset, is_service):
+        info_byte = 1 if is_buy else 0
+        if is_reset:
+            info_byte |= 2
+        if is_service:
+            info_byte |= 4
+
+        chunk = [info_byte] + cls.float_to_8b(price) + cls.float_to_8b(volume) + cls.float_to_8b(timestamp)
+        return bytes(chunk)
 
     @classmethod
     def to_chunk(cls, entry: 'TradeEntry'):
@@ -42,23 +47,15 @@ class TradeEntry(object):
         chunk = cls.create_chunk(is_buy, price, volume, timestamp, is_reset, is_service)
         return TradeEntry(pair, chunk)
 
-    @classmethod
-    def create_chunk(cls, is_buy, price, volume, timestamp, is_reset, is_service):
-        info_byte = 1 if is_buy else 0
-        if is_service:
-            info_byte += 127
-        elif is_reset:
-            info_byte += 254
-
-        chunk = [info_byte] + cls.float_to_8b(price) + cls.float_to_8b(volume) + cls.float_to_8b(timestamp)
-        return bytes(chunk)
-
     def __repr__(self):
         mode = "buy" if self.is_buy else "sell"
         result = f"{self.timestamp} {self.pair} {mode} volume: {self.volume}, price: {self.price}"
 
         if self.is_reset:
             result = "reset " + result
+
+        if self.is_service_entry:
+            result = "is_service " + result
 
         return result
 

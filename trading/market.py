@@ -2,6 +2,7 @@ from typing import List
 
 from configuration import BOOK_DEPTH
 from data.parsing import parse_pair, make_pair
+from data.trade_entry import TradeEntry
 from trading.connector_base import ConnectorBase
 from trading.currency_history2 import CurrencyHistory2
 from trading.fund import Fund
@@ -71,11 +72,5 @@ class Market(object):
     def get_value(self, amount, currency):
         return self.get_history2(0).get_value(Fund(amount, currency))
 
-    def next_step(self):
-        entries_to_load = 1
-        while entries_to_load > 0:
-            entry = self._connector.next_entry()
-            if entry.is_reset:
-                entries_to_load += BOOK_DEPTH
-
-            entries_to_load -= 1
+    def subscribe(self, subscriber):
+        self._current_entry = self._connector.subscribe(subscriber)

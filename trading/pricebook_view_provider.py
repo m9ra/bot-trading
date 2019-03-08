@@ -26,11 +26,9 @@ class PricebookViewProvider(object):
             # nothing helpful in the cache was found
             # create state from scratch
             print(f"Cache miss: {timestamp}")
-            cached_state = self._get_fastforwardable_cache_entry(timestamp)
 
             start_index = reader.find_pricebook_start(timestamp, BOOK_DEPTH)
-
-            start_index = max(0, min(start_index, end_index - BOOK_DEPTH * 2 - 2))
+            start_index = min(start_index, end_index)
             print(f"{self._reader.pair} {timestamp} start: {start_index}, end: {end_index}")
             cached_state = PricebookProcessorState(start_index, 0)
 

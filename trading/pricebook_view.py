@@ -35,7 +35,7 @@ class PricebookView(object):
     def fast_forward_to(self, timestamp):
         while self._current_index < self._end:
             entry = self._reader.get_entry(self._current_index)
-            if entry.timestamp > timestamp:
+            if not entry.is_service_entry and entry.timestamp > timestamp:
                 break
 
             self._process_entry(entry)

@@ -1,3 +1,4 @@
+import os
 from io import SEEK_SET, SEEK_END
 from math import floor
 from typing import Tuple, Optional, List
@@ -10,9 +11,10 @@ from data.trade_entry import TradeEntry
 class StorageReader(object):
     def __init__(self, pair):
         self.pair = pair
-        path = StorageWriter.get_storage_path(pair)
-        self._file = open(path, "rb")
         self._peek_entry_index = 0
+        self._files = {}
+
+        self._current_last_index = 0
 
     def get_peek_entry(self) -> TradeEntry:
         return self._parse_entry(self._peek_entry_index)
@@ -47,9 +49,11 @@ class StorageReader(object):
         return (first_entry.timestamp, last_entry.timestamp)
 
     def get_entry_count(self):
-        self._file.seek(0, SEEK_END)
-        length = self._file.tell()
-        return int(floor(length / StorageWriter.entry_size))
+        file = self._get_last_file()
+        return self._get_file_entry_count(file)
+
+    def get_bucket_count(self):
+        return int(self.get_entry_count() / StorageWriter.bucket_entry_count)
 
     def validate_date_sequence(self):
         last_timestamp = 0
@@ -94,52 +98,78 @@ class StorageReader(object):
     def find_pricebook_start(self, start, book_size):
         current_position = 0
         interval_start = 0
-        interval_end = self.get_entry_count()
-        # find the start (binary search)
+        interval_end = self.get_bucket_count()
+        # find the nearest lower index (binary search on buckets)
         while interval_end - interval_start > 1:
-            current_position = int((interval_end + interval_start) / 2)
-            self.get_entry(current_position)
-            current_entry = self._parse_current_entry()
+            current_bucket = int((interval_end + interval_start) / 2)
+            current_position = current_bucket * StorageWriter.bucket_entry_count
+            current_entry = self.get_entry(current_position)
             timestamp = current_entry.timestamp
-            for i in range(1, book_size * 2 + 2):
-                expanded_position = current_position - i
-                if expanded_position < 0:
-                    break
-
-                entry = self.get_entry(expanded_position)
-                timestamp = max(timestamp, entry.timestamp)
 
             if timestamp > start:
-                interval_end = current_position
+                interval_end = current_bucket
             else:
-                interval_start = current_position
-        # find enough changes back in time for the book
-        book_info_sizes = {True: 0, False: 0}
-        while book_info_sizes[True] < book_size or book_info_sizes[False] < book_size:
-            current_entry = self._parse_entry(current_position)
+                interval_start = current_bucket
 
-            current_position -= 1
-            if current_position <= 0:
+        return interval_start * StorageWriter.bucket_entry_count
+
+    def _parse_entry(self, entry_index) -> TradeEntry:
+        file, in_file_entry_index = self._get_file(entry_index)
+        if file is None:
+            raise ValueError(f"Invalid index {entry_index}")
+
+        chunk_size = TradeEntry.chunk_size
+        file.seek(in_file_entry_index * chunk_size, SEEK_SET)
+        chunk = file.read(chunk_size)
+
+        if len(chunk) != chunk_size:
+            raise AssertionError(f"Incorrect chunk returned: {chunk}")
+
+        return TradeEntry(self.pair, chunk)
+
+    def _get_file(self, entry_index):
+        file_index, in_file_index = StorageWriter.get_file_index(entry_index)
+        file = self._get_file_by_index(file_index)
+
+        return file, in_file_index
+
+    def _get_file_by_index(self, file_index):
+        if file_index not in self._files:
+            path = StorageWriter.get_storage_path(self.pair, file_index)
+            if not os.path.exists(path):
+                return None
+
+            self._files[file_index] = open(path, "rb")
+            self._current_last_index = max(self._current_last_index, file_index)
+
+        return self._files[file_index]
+
+    def _get_last_file(self):
+        if self._current_last_index in self._files:
+            entry_count = self._get_file_entry_count(self._files[self._current_last_index])
+
+            if entry_count < StorageWriter.file_entry_count:
+                # then known last file is not filled yet -> its really the last file
+                return self._get_file_by_index(self._current_last_index)
+
+        # otherwise search for the really last file
+        i = 0
+        while True:
+            path = StorageWriter.get_storage_path(self.pair, i)
+            if not os.path.exists(path):
                 break
 
-            count = book_info_sizes[current_entry.is_buy]
-            count += 1
-            if current_entry.volume <= 0:
-                count -= 2  # compensate for some previous entry that was deleted on this point
+            i += 1
 
-            if current_entry.is_reset:
-                count = 0  # whole book was potentially deleted at this time
+        return self._get_file_by_index(i - 1)
 
-            book_info_sizes[current_entry.is_buy] = max(0, count)
-
-        return current_position
-
-    def _parse_entry(self, index):
-        self._seek_entry(index)
-        current_entry = self._parse_current_entry()
-        return current_entry
+    def _get_file_entry_count(self, file):
+        file.seek(0, SEEK_END)
+        length = file.tell()
+        return int(floor(length / TradeEntry.chunk_size))
 
     def _parse_entry_block(self, index, entry_count) -> List[TradeEntry]:
+        raise NotImplementedError("Block reading over multiple files ")
         self._seek_entry(index)
 
         block_size = StorageWriter.entry_size * entry_count
@@ -151,14 +181,3 @@ class StorageReader(object):
         for start in range(0, block_size, StorageWriter.entry_size):
             chunk = block_chunk[start:start + StorageWriter.entry_size]
             yield TradeEntry(self.pair, chunk)
-
-    def _parse_current_entry(self) -> TradeEntry:
-        chunk = self._file.read(StorageWriter.entry_size)
-
-        if len(chunk) != StorageWriter.entry_size:
-            raise AssertionError(f"Incorrect chunk returned: {chunk}")
-
-        return TradeEntry(self.pair, chunk)
-
-    def _seek_entry(self, index):
-        self._file.seek(index * StorageWriter.entry_size, SEEK_SET)

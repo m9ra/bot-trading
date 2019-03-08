@@ -20,7 +20,7 @@ class FeedWriter(object):
         formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
         root_logger = logging.getLogger()
 
-        file_handler = logging.FileHandler("/tmp/price_satellite.log")
+        file_handler = logging.FileHandler("/tmp/price_satellite.log_strange")
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
 

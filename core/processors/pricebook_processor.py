@@ -15,6 +15,7 @@ class PricebookProcessor(ProcessorBase):
         self._w_buy_container = {}
 
         self._current_time = 0.0
+        self._is_service_mode_active = False
 
     @property
     def is_ready(self):
@@ -34,16 +35,22 @@ class PricebookProcessor(ProcessorBase):
     def current_depth(self):
         return min(len(self._buy_container), len(self._sell_container))
 
+    def accept(self, entry):
+        self._is_service_mode_active = entry.is_service_entry
+        super().accept(entry)
+
     def reset(self, is_buy):
-        if is_buy:
-            self._w_buy_container = {}
-        else:
-            self._w_sell_container = {}
+        self._write_container(is_buy, {})
 
     def write(self, is_buy, price, amount, timestamp):
         self._current_time = max(self._current_time, timestamp)
 
-        container = self._w_buy_container if is_buy else self._w_sell_container
+        if self._is_service_mode_active:
+            # in service mode, direct writes are performed
+            container = self._choose_container(is_buy, self._buy_container, self._sell_container)
+        else:
+            container = self._choose_container(is_buy, self._w_buy_container, self._w_sell_container)
+
         if amount == 0.0:
             if price in container:
                 del container[price]
@@ -54,7 +61,12 @@ class PricebookProcessor(ProcessorBase):
             largest_key = max(container.keys())
             del container[largest_key]
 
+        if self._is_service_mode_active:
+            # in service mode, the buy/sells are updated directly
+            return
+
         if is_buy:
+
             if self._w_buy_container is self._buy_container:
                 return
 
@@ -111,14 +123,29 @@ class PricebookProcessor(ProcessorBase):
         return result
 
     def _dump_container(self, container, is_buy, is_service):
-        if container is None:
-            return
-
         if is_service:
             # one of the buy/sell service entries will be used as top level index
             yield TradeEntry.create_entry(self._pair, is_buy, 0.0, 0.0, self._current_time, is_reset=True,
                                           is_service=True)
 
+        if container is None:
+            return
+
         for price, (volume, timestamp) in container.items():
             yield TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, is_reset=False,
                                           is_service=is_service)
+
+    def _write_container(self, is_buy, value):
+        if is_buy:
+            self._w_buy_container = value
+        else:
+            self._w_sell_container = value
+
+        if self._is_service_mode_active:
+            if is_buy:
+                self._buy_container = value
+            else:
+                self._sell_container = value
+
+    def _choose_container(self, is_first, c1, c2):
+        return c1 if is_first else c2
