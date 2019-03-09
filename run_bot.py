@@ -10,8 +10,8 @@ readers = []
 for pair in market_pairs:
     readers.append(StorageReader(pair))
 
-#connector = PeekConnector(readers)
-connector = FullpassConnector(readers)
+connector = PeekConnector(readers)
+#connector = FullpassConnector(readers)
 # bot = IntervalPredictionBot()
 bot = RandomBot()
 market = Market("EUR", market_pairs, connector)
