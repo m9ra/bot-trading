@@ -22,7 +22,7 @@ class BotExecutor(object):
         self._bot_slack = 0.0  # compensates for bot calculation time
         self._last_bot_update = 0
 
-`    def run(self):
+    def run(self):
         self._market.subscribe(self)
         self._market.run()
 
