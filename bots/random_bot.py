@@ -9,14 +9,9 @@ class RandomBot(BotBase):
         history = portfolio.get_history2(seconds_back=60)
         present = portfolio.get_history2(seconds_back=0)
 
-        if not history.is_available or not present.is_available:
+        if not history.is_available:
             # the requested history is not available (probably too long to the past?)
             return
-
-        #if not present.is_available:
-        #    pricebook = portfolio._market._connector.get_pricebook("XMR", "EUR",
-        #                                                           portfolio._market._connector.current_time)
-        #    raise AssertionError("Present has to be always available")
 
         best_delta = None
         best_currency = None
@@ -28,5 +23,5 @@ class RandomBot(BotBase):
 
         source_fund = random.choice(portfolio.funds)
         if source_fund.currency != best_currency:
-            # portfolio.request_conversion(source_fund / 2, best_currency)
+            portfolio.request_conversion(source_fund / 2, best_currency)
             pass

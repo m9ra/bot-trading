@@ -1,7 +1,7 @@
 import os
 from io import SEEK_SET, SEEK_END
 from math import floor
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Callable
 
 from data.storage_index import StorageIndex
 from data.storage_writer import StorageWriter
@@ -15,6 +15,8 @@ class StorageReader(object):
         self._files = {}
 
         self._current_last_index = 0
+
+        self._subscribers: List = None
 
     def get_peek_entry(self) -> TradeEntry:
         return self._parse_entry(self._peek_entry_index)
@@ -144,13 +146,13 @@ class StorageReader(object):
 
         return self._files[file_index]
 
-    def _get_last_file(self):
+    def _get_last_file_index(self):
         if self._current_last_index in self._files:
             entry_count = self._get_file_entry_count(self._files[self._current_last_index])
 
             if entry_count < StorageWriter.file_entry_count:
                 # then known last file is not filled yet -> its really the last file
-                return self._get_file_by_index(self._current_last_index)
+                return self._current_last_index
 
         # otherwise search for the really last file
         i = 0
@@ -161,7 +163,13 @@ class StorageReader(object):
 
             i += 1
 
-        return self._get_file_by_index(i - 1)
+        last_index = i - 1
+        self._current_last_index = last_index
+        return last_index
+
+    def _get_last_file(self):
+        index = self._get_last_file_index()
+        return self._get_file_by_index(index)
 
     def _get_file_entry_count(self, file):
         file.seek(0, SEEK_END)
@@ -181,3 +189,49 @@ class StorageReader(object):
         for start in range(0, block_size, StorageWriter.entry_size):
             chunk = block_chunk[start:start + StorageWriter.entry_size]
             yield TradeEntry(self.pair, chunk)
+
+    def subscribe(self, feed_handler: Callable[[int, List[TradeEntry]], None]):
+        if self._subscribers:
+            self._subscribers.append(feed_handler)
+            return
+
+            # otherwise initialize event handling
+        self._subscribers = [feed_handler]
+
+        from watchdog.events import FileSystemEventHandler
+        from watchdog.observers import Observer
+        from watchdog.observers.inotify_buffer import InotifyBuffer
+        InotifyBuffer.delay = 0
+
+        storage = self
+
+        class Handler(FileSystemEventHandler):
+            def __init__(self):
+                self._next_entry_index = None
+
+            def on_modified(self, event):
+                file_index = storage._get_last_file_index()
+                file = storage._get_file_by_index(file_index)
+                file_end = file.seek(0, SEEK_END)
+                entry_index = int(file_end / TradeEntry.chunk_size) + file_index * StorageWriter.file_entry_count
+
+                if self._next_entry_index is None:
+                    # first event - just initialize
+                    self._next_entry_index = entry_index
+                    return
+
+                result = []
+                for i in range(self._next_entry_index, entry_index):
+                    result.append(storage.get_entry(i))
+
+                if result:
+                    for subscriber in storage._subscribers:
+                        subscriber(self._next_entry_index, result)
+
+                self._next_entry_index = entry_index
+
+        directory = os.path.dirname(StorageWriter.get_storage_path(self.pair, 0))
+        event_handler = Handler()
+        observer = Observer(timeout=100)
+        observer.schedule(event_handler, directory, recursive=False)
+        observer.start()

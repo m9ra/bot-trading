@@ -73,4 +73,7 @@ class Market(object):
         return self.get_history2(0).get_value(Fund(amount, currency))
 
     def subscribe(self, subscriber):
-        self._current_entry = self._connector.subscribe(subscriber)
+        self._connector.subscribe(subscriber)
+
+    def run(self):
+        self._connector.run()
