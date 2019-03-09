@@ -28,7 +28,7 @@ class BotExecutor(object):
         self._market.run()
 
     def receive(self, entry: TradeEntry):
-        print(entry)
+        print(".", end="", flush=True)
         self._register(self._market.current_time)
 
     def _register(self, timestamp):
@@ -45,6 +45,8 @@ class BotExecutor(object):
             self._last_bot_update = self._current_time
 
     def _consult_bot(self):
+        print(self._current_time)
+
         start = time.time()
         portfolio = PortfolioController(self._market, self._portfolio_state)
         self._bot.update_portfolio(portfolio)
@@ -52,11 +54,12 @@ class BotExecutor(object):
 
         # compensate for bot calculation time
         self._bot_slack += end - start
-        print(portfolio.total_value)
 
         for command in portfolio._commands:
             print(command)
             command.apply(self._portfolio_state)
+
+        print(f"Portfolio value: {portfolio.total_value}")
 
     def _update_slack(self, new_time):
         # sync time with the bot execution delay
@@ -65,4 +68,3 @@ class BotExecutor(object):
         self._current_time = max(self._current_time, new_time)
         sync_time = self._current_time - last_time
         self._bot_slack = max(0, self._bot_slack - sync_time)
-        print(self._current_time)

@@ -49,56 +49,56 @@ class StorageWriter(object):
         return i * self.file_entry_count + int(size / TradeEntry.chunk_size)
 
 
-def _open_next_file(self):
-    file_number = int(self._next_entry_index / self.file_entry_count)
-    path = self.get_storage_path(self._pair, file_number)
+    def _open_next_file(self):
+        file_number = int(self._next_entry_index / self.file_entry_count)
+        path = self.get_storage_path(self._pair, file_number)
 
-    abs_path = os.path.abspath(path)
-    return open(abs_path, "ab")
-
-
-def write(self, is_buy: bool, price: float, volume: float, timestamp: float):
-    self._handle_write(is_buy, price, volume, timestamp, is_reset=False)
+        abs_path = os.path.abspath(path)
+        return open(abs_path, "ab")
 
 
-def reset(self, is_buy):
-    self._handle_write(is_buy, 0.0, 0.0, datetime.datetime.utcnow().timestamp(), is_reset=True)
+    def write(self, is_buy: bool, price: float, volume: float, timestamp: float):
+        self._handle_write(is_buy, price, volume, timestamp, is_reset=False)
 
 
-def flush(self):
-    self._current_file.flush()
+    def reset(self, is_buy):
+        self._handle_write(is_buy, 0.0, 0.0, datetime.datetime.utcnow().timestamp(), is_reset=True)
 
 
-def _handle_write(self, is_buy, price, volume, timestamp, is_reset):
-    entry = TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, is_reset, is_service=False)
+    def flush(self):
+        self._current_file.flush()
 
-    self._pricebook.accept(entry)
 
-    need_new_file = self._next_entry_index % self.file_entry_count == 0
-    need_new_bucket = self._next_entry_index % self.bucket_entry_count == 0
+    def _handle_write(self, is_buy, price, volume, timestamp, is_reset):
+        entry = TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, is_reset, is_service=False)
 
-    if not need_new_bucket and not need_new_file:
-        # simple write through
-        chunk = TradeEntry.to_chunk(entry)
-        self._write_chunk(chunk)
-        return  # a usual entry, no special action to handle it
-    elif not self._pricebook.is_ready:
-        return  # wait until pricebook is initialized (for the first time, when service record is to be created)
+        self._pricebook.accept(entry)
 
-    if need_new_file:
-        if self._current_file:
-            self._current_file.close()
-        self._current_file = None
+        need_new_file = self._next_entry_index % self.file_entry_count == 0
+        need_new_bucket = self._next_entry_index % self.bucket_entry_count == 0
 
-    if need_new_bucket:
-        service_entries = self._pricebook.dump_to_entries()
-        for entry in service_entries:
+        if not need_new_bucket and not need_new_file:
+            # simple write through
             chunk = TradeEntry.to_chunk(entry)
             self._write_chunk(chunk)
+            return  # a usual entry, no special action to handle it
+        elif not self._pricebook.is_ready:
+            return  # wait until pricebook is initialized (for the first time, when service record is to be created)
+
+        if need_new_file:
+            if self._current_file:
+                self._current_file.close()
+            self._current_file = None
+
+        if need_new_bucket:
+            service_entries = self._pricebook.dump_to_entries()
+            for entry in service_entries:
+                chunk = TradeEntry.to_chunk(entry)
+                self._write_chunk(chunk)
 
 
-def _write_chunk(self, chunk):
-    if self._current_file is None:
-        self._current_file = self._open_next_file()
-    self._current_file.write(bytes(chunk))
-    self._next_entry_index += 1
+    def _write_chunk(self, chunk):
+        if self._current_file is None:
+            self._current_file = self._open_next_file()
+        self._current_file.write(bytes(chunk))
+        self._next_entry_index += 1

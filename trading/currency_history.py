@@ -41,6 +41,6 @@ class CurrencyHistory(object):
         current_fund = fund
         for intermediate_currency in path[1:]:
             pricebook = self.get_pricebook(current_fund.currency, intermediate_currency)
-            current_fund = pricebook.after_conversion(fund)
+            current_fund = pricebook.after_conversion(current_fund)
 
         return current_fund

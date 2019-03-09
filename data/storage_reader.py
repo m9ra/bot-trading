@@ -4,7 +4,6 @@ from math import floor
 from typing import Tuple, Optional, List, Callable
 
 from data.entry_reader_base import EntryReaderBase
-from data.exceptions import TradeEntryNotAvailableException
 from data.storage_writer import StorageWriter
 from data.trade_entry import TradeEntry
 

@@ -14,6 +14,9 @@ class Fund(object):
     def __repr__(self):
         return f"{self.amount} {self._currency}"
 
+    def __str__(self):
+        return self.__repr__()
+
     def __truediv__(self, other):
         return Fund(self._amount / other, self._currency)
 

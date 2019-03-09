@@ -29,4 +29,4 @@ class RandomBot(BotBase):
         source_fund = random.choice(portfolio.funds)
         if source_fund.currency != best_currency:
             portfolio.request_conversion(source_fund / 2, best_currency)
-            pass
+

@@ -19,3 +19,6 @@ class TransferCommand(object):
                 "amount": self._target_amount
             }
         )
+
+    def __repr__(self):
+        return f"Transfer {self._source_amount}{self._source} --> {self._target_amount}{self._target}"
