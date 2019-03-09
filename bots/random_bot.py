@@ -32,7 +32,7 @@ class RandomBot(BotBase):
 
         source_fund = random.choice(funds)
         if source_fund.currency != best_currency:
-            #if source_fund.currency == portfolio.target_currency:
-            #    source_fund = source_fund / 10  # dont trade everything at once
+            if source_fund.currency == portfolio.target_currency:
+                source_fund = source_fund / 2  # dont trade everything at once
 
             portfolio.request_conversion(source_fund, best_currency)
