@@ -42,8 +42,22 @@ class PortfolioController(object):
         return result
 
     @property
+    def profitable_funds(self) -> List[Fund]:
+        result = []
+        for position in self._currency_positions.values():
+            profitable_amount = position.get_profitable_amount(self._market)
+            if profitable_amount > 0:
+                result.append(Fund(profitable_amount, position.currency))
+
+        return result
+
+    @property
     def present(self) -> CurrencyHistory:
         return self.get_history(0)
+
+    @property
+    def target_currency(self):
+        return self._market.target_currency
 
     def get_history(self, seconds_back) -> CurrencyHistory:
         return self._market.get_history(seconds_back)
@@ -65,7 +79,8 @@ class PortfolioController(object):
         for intermediate_currency in transfer_path[1:]:
             new_fund = present.after_conversion(current_fund, intermediate_currency)
             self.put_command(
-                TransferCommand(current_fund.currency, current_fund.amount, new_fund.currency, new_fund.amount))
+                TransferCommand(self._market, current_fund.currency, current_fund.amount, new_fund.currency,
+                                new_fund.amount))
             current_fund = new_fund
 
     def put_command(self, command):

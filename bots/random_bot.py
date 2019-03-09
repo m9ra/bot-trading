@@ -26,7 +26,13 @@ class RandomBot(BotBase):
                 best_delta = price_delta
                 best_currency = currency
 
-        source_fund = random.choice(portfolio.funds)
-        if source_fund.currency != best_currency:
-            portfolio.request_conversion(source_fund / 2, best_currency)
+        funds = portfolio.profitable_funds
+        if not funds:
+            return  # there is no profitable fund that could be used now
 
+        source_fund = random.choice(funds)
+        if source_fund.currency != best_currency:
+            if source_fund.currency == portfolio.target_currency:
+                source_fund = source_fund / 10  # dont trade everything at once
+
+            portfolio.request_conversion(source_fund, best_currency)

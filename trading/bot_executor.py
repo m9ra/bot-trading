@@ -13,7 +13,10 @@ class BotExecutor(object):
         self._portfolio_state = {
             "positions": {
                 market.target_currency: [
-                    {"amount": initial_value}
+                    {
+                        "amount": initial_value,
+                        "initial_value": initial_value
+                    }
                 ]
             }
         }

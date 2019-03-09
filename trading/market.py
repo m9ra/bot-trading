@@ -70,7 +70,7 @@ class Market(object):
         return [source_currency, self.target_currency, target_currency]
 
     def get_value(self, amount, currency):
-        return self.get_history2(0).get_value(Fund(amount, currency))
+        return self.get_history(0).get_value(Fund(amount, currency))
 
     def subscribe(self, subscriber):
         self._connector.subscribe(subscriber)
