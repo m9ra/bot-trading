@@ -4,7 +4,7 @@ from configuration import BOOK_DEPTH
 from data.parsing import parse_pair, make_pair
 from data.trade_entry import TradeEntry
 from trading.connector_base import ConnectorBase
-from trading.currency_history2 import CurrencyHistory2
+from trading.currency_history import CurrencyHistory
 from trading.fund import Fund
 
 
@@ -38,8 +38,8 @@ class Market(object):
     def has_currency(self, currency):
         return currency in self._currencies
 
-    def get_history2(self, seconds_back: float) -> CurrencyHistory2:
-        history = CurrencyHistory2(self, self._connector)
+    def get_history(self, seconds_back: float) -> CurrencyHistory:
+        history = CurrencyHistory(self, self._connector)
         history.set_time(self.current_time - seconds_back)
 
         return history

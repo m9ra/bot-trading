@@ -1,9 +1,11 @@
+from data.exceptions import TradeEntryNotAvailableException
+from data.parsing import parse_pair
 from trading.connector_base import ConnectorBase
 from trading.fund import Fund
 from trading.pricebook_view import PricebookView
 
 
-class CurrencyHistory2(object):
+class CurrencyHistory(object):
     def __init__(self, market: "Market", connector: ConnectorBase):
         self._market = market
         self._connector = connector
@@ -11,9 +13,13 @@ class CurrencyHistory2(object):
 
     @property
     def is_available(self):
-        for pair in self._market.direct_currency_pairs:
-            if not self._connector.is_synchronized(pair, self._current_time):
-                return False
+        try:
+            for pair in self._market.direct_currency_pairs:
+                if not self._connector.get_pricebook(*parse_pair(pair), self._current_time).is_synchronized:
+                    return False
+
+        except TradeEntryNotAvailableException:
+            return False
 
         return True
 

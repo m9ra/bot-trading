@@ -6,8 +6,13 @@ from trading.portfolio_controller import PortfolioController
 
 class RandomBot(BotBase):
     def update_portfolio(self, portfolio: PortfolioController):
-        history = portfolio.get_history2(seconds_back=60)
-        present = portfolio.get_history2(seconds_back=0)
+        history = portfolio.get_history(seconds_back=60)
+        present = portfolio.get_history(seconds_back=0)
+
+        if not present.is_available:
+            present = portfolio.get_history(seconds_back=0)
+            present.is_available
+            raise AssertionError("wtf")
 
         if not history.is_available:
             # the requested history is not available (probably too long to the past?)

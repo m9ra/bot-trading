@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Dict, Any, List
 
-from trading.currency_history2 import CurrencyHistory2
+from trading.currency_history import CurrencyHistory
 from trading.currency_position import CurrencyPosition
 from trading.fund import Fund
 from trading.transfer_command import TransferCommand
@@ -19,7 +19,7 @@ class PortfolioController(object):
 
     @property
     def total_value(self):
-        present = self.get_history2(0)
+        present = self.present
 
         accumulator = Fund(0, self._market.target_currency)
         for fund in self.funds:
@@ -41,9 +41,12 @@ class PortfolioController(object):
 
         return result
 
-    def get_history2(self, seconds_back) -> CurrencyHistory2:
-        return self._market.get_history2(seconds_back)
+    @property
+    def present(self) -> CurrencyHistory:
+        return self.get_history(0)
 
+    def get_history(self, seconds_back) -> CurrencyHistory:
+        return self._market.get_history(seconds_back)
 
     def request_conversion(self, source_fund: Fund, target_currency: str):
         """Requests transfer of amount of source_currency to the given target_currency"""
@@ -56,7 +59,7 @@ class PortfolioController(object):
 
         transfer_path = self._market.get_transfer_path(source_fund.currency, target_currency)
 
-        present = self.get_history2(0)
+        present = self.present
 
         current_fund = source_fund
         for intermediate_currency in transfer_path[1:]:

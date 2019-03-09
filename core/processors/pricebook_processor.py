@@ -16,10 +16,15 @@ class PricebookProcessor(ProcessorBase):
 
         self._current_time = 0.0
         self._is_service_mode_active = False
+        self._is_in_service_entry_area = False
 
     @property
     def is_ready(self):
         return self._buy_container is not None and self._sell_container is not None
+
+    @property
+    def is_in_service_entry_area(self):
+        return self._is_in_service_entry_area
 
     @property
     def buy_levels(self):
@@ -37,6 +42,7 @@ class PricebookProcessor(ProcessorBase):
 
     def accept(self, entry):
         self._is_service_mode_active = entry.is_service_entry
+        self._is_in_service_entry_area = entry.is_service_entry
         super().accept(entry)
 
     def reset(self, is_buy):

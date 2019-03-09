@@ -1,38 +1,18 @@
-import time
-
 from configuration import TRACKED_PAIRS
-from data.storage_index import StorageIndex
 from data.storage_reader import StorageReader
+from data.storage_writer import StorageWriter
 
 last_entry_counts = []
 readers = []
+
+print("SERVICE ENTRY CHECKS")
 for pair in TRACKED_PAIRS:
+    print(f"\t checking {pair}")
     reader = StorageReader(pair)
-    readers.append(reader)
-    last_entry_counts.append(0)
 
-for reader in readers:
-    entry_count = reader.get_entry_count()
-    index = StorageIndex(reader.pair)
-    start = time.time()
-    index.update_by(reader._parse_entry_block(0, entry_count))
-    end = time.time()
+    for bucket_index in range(int(reader.get_entry_count() / StorageWriter.bucket_entry_count)):
+        entry_index=bucket_index*StorageWriter.bucket_entry_count
+        entry=reader.get_entry(entry_index)
 
-    duration = end - start
-
-    print(f"{reader.pair} {entry_count} {entry_count / duration} {duration}")
-
-while True:
-    has_update = False
-    for i, reader in enumerate(readers):
-        entry_count = reader.get_entry_count()
-        last_entry_count = last_entry_counts[i]
-        if entry_count != last_entry_count:
-            print(f"{reader.pair}: {entry_count - last_entry_count}")
-            last_entry_counts[i] = entry_count
-            has_update = True
-
-    if has_update:
-        print("==============")
-
-    time.sleep(1)
+        if not entry.is_service_entry:
+            print(f"\t\t {pair} entry at position {entry_index} is not service entry")
