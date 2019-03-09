@@ -34,11 +34,16 @@ class StorageWriter(object):
     def _load_entry_index(self):
         i = 0
         while True:
-            next_file_path = self.get_storage_path(self._pair, i + 1)
+            next_file_path = self.get_storage_path(self._pair, i)
             if not os.path.exists(next_file_path):
                 break
 
             i += 1
+
+        i -= 1  # go to previous storage index which should existed
+        if i < 0:
+            # unless no storage exists
+            return 0
 
         size = os.path.getsize(self.get_storage_path(self._pair, i))
         return i * self.file_entry_count + int(size / TradeEntry.chunk_size)
