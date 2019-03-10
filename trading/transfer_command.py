@@ -23,13 +23,14 @@ class TransferCommand(object):
             amount = source_bucket["amount"]
             diff = min(amount, pending_amount)
             source_bucket["amount"] = amount - diff
-            source_bucket["initial_value"] -= diff/self._source_amount * source_initial_value # proportional value
+            source_bucket["initial_value"] -= diff / self._source_amount * source_initial_value  # proportional value
             pending_amount -= diff
             if pending_amount <= 0:
                 break
 
         if pending_amount > 1e-9:
             raise ValueError(f"Missing {pending_amount}{self._source}.")
+        pending_amount = 0  # compensate float inaccuracies
 
         # add amount to target bucket
         if self._target not in positions:

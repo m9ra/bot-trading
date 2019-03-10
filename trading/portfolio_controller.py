@@ -43,13 +43,7 @@ class PortfolioController(object):
 
     @property
     def profitable_funds(self) -> List[Fund]:
-        result = []
-        for position in self._currency_positions.values():
-            profitable_amount = position.get_profitable_amount(self._market)
-            if profitable_amount > 0:
-                result.append(Fund(profitable_amount, position.currency))
-
-        return result
+        return self.get_funds_better_than(gain=1.0)
 
     @property
     def present(self) -> CurrencyHistory:
@@ -99,9 +93,22 @@ class PortfolioController(object):
         self._current_portfolio_state = deepcopy(self._initial_portfolio_state)
         self._load_from_state(self._current_portfolio_state)
 
+    def get_funds_better_than(self, gain: float, force_include_target: bool = True) -> List[Fund]:
+        result = []
+        for position in self._currency_positions.values():
+            if position.currency == self.target_currency and force_include_target:
+                if position.total_amount > 0:
+                    result.append(Fund(position.total_amount, position.currency))
+                continue
+
+            profitable_amount = position.get_profitable_amount(self._market, gain)
+            if profitable_amount > 0:
+                result.append(Fund(profitable_amount, position.currency))
+
+        return result
 
     def print_pricebook_info(self, source_currency, target_currency):
-        pricebook = self.present.get_pricebook(source_currency,target_currency)
+        pricebook = self.present.get_pricebook(source_currency, target_currency)
 
         print("SELL")
         for level in pricebook.sell_levels:

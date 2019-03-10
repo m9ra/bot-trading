@@ -21,9 +21,9 @@ class RandomBot(BotBase):
                 best_delta = price_delta
                 best_currency = currency
 
-        funds = portfolio.profitable_funds
+        funds = portfolio.get_funds_better_than(gain=1.005)  # trade funds only if greater than 0.5% increase was observed
         if not funds:
-            return  # there is no profitable fund that could be used now
+            return  # there is no fund that could be used now
 
         source_fund = random.choice(funds)
         if source_fund.currency != best_currency:

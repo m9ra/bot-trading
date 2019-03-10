@@ -38,7 +38,7 @@ class StorageReader(EntryReaderBase):
 
     def find_pricebook_start(self, start):
         interval_start = 0
-        interval_end = self.get_bucket_count()
+        interval_end = self.get_bucket_count() - 1
         # find the nearest lower index (binary search on buckets)
         while interval_end - interval_start > 1:
             current_bucket = int((interval_end + interval_start) / 2)
