@@ -28,7 +28,7 @@ class TransferCommand(object):
             if pending_amount <= 0:
                 break
 
-        if pending_amount > 0:
+        if pending_amount > 1e-9:
             raise ValueError(f"Missing {pending_amount}{self._source}.")
 
         # add amount to target bucket
