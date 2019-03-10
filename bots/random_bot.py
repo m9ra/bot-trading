@@ -9,13 +9,8 @@ class RandomBot(BotBase):
         history = portfolio.get_history(seconds_back=60)
         present = portfolio.get_history(seconds_back=0)
 
-        if not present.is_available:
-            present = portfolio.get_history(seconds_back=0)
-            present.is_available
-            raise AssertionError("wtf")
-
         if not history.is_available:
-            # the requested history is not available (probably too long to the past?)
+            # the requested history is not available (probably too far to the past?)
             return
 
         best_delta = None
@@ -34,6 +29,7 @@ class RandomBot(BotBase):
         if source_fund.currency != best_currency:
             if source_fund.currency == portfolio.target_currency:
                 if source_fund.amount > 10:
-                    source_fund = source_fund / 2  # dont trade everything at once
+                    source_fund = source_fund / 2  # don't trade everything at once
 
+            print(portfolio.total_value)
             portfolio.request_conversion(source_fund, best_currency)

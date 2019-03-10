@@ -99,6 +99,21 @@ class PortfolioController(object):
         self._current_portfolio_state = deepcopy(self._initial_portfolio_state)
         self._load_from_state(self._current_portfolio_state)
 
+
+    def print_pricebook_info(self, source_currency, target_currency):
+        pricebook = self.present.get_pricebook(source_currency,target_currency)
+
+        print("SELL")
+        for level in pricebook.sell_levels:
+            print(level)
+
+        print()
+        print("BUY")
+        for level in pricebook.buy_levels:
+            print(level)
+
+        print("\n\n\n")
+
     def _validate_currencies(self, *currencies):
         self._market.validate_currencies(*currencies)
 

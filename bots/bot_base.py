@@ -7,3 +7,4 @@ class BotBase(object):
 
     def update_portfolio(self, portfolio: PortfolioController):
         raise NotImplementedError("must be overridden")
+
