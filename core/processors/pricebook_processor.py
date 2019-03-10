@@ -64,8 +64,12 @@ class PricebookProcessor(ProcessorBase):
             container[price] = (amount, timestamp)
 
         if len(container) > BOOK_DEPTH:
-            largest_key = max(container.keys())
-            del container[largest_key]
+            if is_buy:
+                last_key = min(container.keys())
+            else:
+                last_key = max(container.keys())
+
+            del container[last_key]
 
         if self._is_service_mode_active:
             # in service mode, the buy/sells are updated directly
