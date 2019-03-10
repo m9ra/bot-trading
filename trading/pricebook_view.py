@@ -66,7 +66,7 @@ class PricebookView(object):
         # todo consider levels
         # todo consider fees
         if is_reversed:
-            price_per_source_unit = self.sell_levels[0][0]
+            price_per_source_unit = self.sell_levels[-1][0]
             return Fund(fund.amount / price_per_source_unit, self.source_currency)
         else:
             price_per_source_unit = self.buy_levels[0][0]
