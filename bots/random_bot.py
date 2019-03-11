@@ -6,7 +6,7 @@ from trading.portfolio_controller import PortfolioController
 
 class RandomBot(BotBase):
     def update_portfolio(self, portfolio: PortfolioController):
-        history = portfolio.get_history(seconds_back=60)
+        history = portfolio.get_history(seconds_back=10)
         present = portfolio.get_history(seconds_back=0)
 
         if not history.is_available:
@@ -21,15 +21,15 @@ class RandomBot(BotBase):
                 best_delta = price_delta
                 best_currency = currency
 
-        funds = portfolio.get_funds_better_than(gain=1.005)  # trade funds only if greater than 0.5% increase was observed
+        funds = portfolio.get_funds_better_than(
+            gain=1.005)  # trade funds only if greater than 0.5% increase was observed
         if not funds:
             return  # there is no fund that could be used now
 
         source_fund = random.choice(funds)
         if source_fund.currency != best_currency:
             if source_fund.currency == portfolio.target_currency:
-                if source_fund.amount > 10:
-                    source_fund = source_fund / 2  # don't trade everything at once
+                source_fund = source_fund.cap_to(100)
 
             print(portfolio.total_value)
             portfolio.request_conversion(source_fund, best_currency)

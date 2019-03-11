@@ -11,6 +11,9 @@ class Fund(object):
     def currency(self):
         return self._currency
 
+    def cap_to(self, limit):
+        return Fund(min(self._amount, limit), self._currency)
+
     def __repr__(self):
         return f"{self.amount} {self._currency}"
 
