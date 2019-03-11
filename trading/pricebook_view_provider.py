@@ -1,6 +1,5 @@
 from typing import Optional
 
-from configuration import BOOK_DEPTH
 from trading.pricebook_view import PricebookView
 from data.pricebook_processor_state import PricebookProcessorState
 

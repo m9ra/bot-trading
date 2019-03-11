@@ -69,3 +69,16 @@ class TradeEntry(object):
             raise AssertionError(f"Float encoding produces incorrect format {result}")
 
         return result
+
+    @classmethod
+    def from_chunk(cls, pair, chunk) -> List:
+        chunk = memoryview(chunk)
+        if len(chunk) % TradeEntry.chunk_size:
+            raise AssertionError(f"Incorrect chunk {chunk}")
+
+        result = []
+        for i in range(int(len(chunk) / TradeEntry.chunk_size)):
+            start = i * TradeEntry.chunk_size
+            result.append(TradeEntry(pair, chunk[start:start + TradeEntry.chunk_size]))
+
+        return result

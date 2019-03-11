@@ -1,6 +1,7 @@
 import os
 from io import SEEK_SET, SEEK_END
 from math import floor
+from threading import Lock
 from typing import Tuple, Optional, List, Callable
 
 from data.entry_reader_base import EntryReaderBase
@@ -70,27 +71,29 @@ class StorageReader(EntryReaderBase):
         class Handler(FileSystemEventHandler):
             def __init__(self):
                 self._next_entry_index = None
+                self._L_event = Lock()
 
             def on_modified(self, event):
-                file_index = storage._get_last_file_index()
-                file = storage._get_file_by_index(file_index)
-                file_end = file.seek(0, SEEK_END)
-                entry_index = int(file_end / TradeEntry.chunk_size) + file_index * StorageWriter.file_entry_count
+                with self._L_event:
+                    file_index = storage._get_last_file_index()
+                    file = storage._get_file_by_index(file_index)
+                    file_end = file.seek(0, SEEK_END)
+                    entry_index = int(file_end / TradeEntry.chunk_size) + file_index * StorageWriter.file_entry_count
 
-                if self._next_entry_index is None:
-                    # first event - just initialize
+                    if self._next_entry_index is None:
+                        # first event - just initialize
+                        self._next_entry_index = entry_index
+                        return
+
+                    result = []
+                    for i in range(self._next_entry_index, entry_index):
+                        result.append(storage.get_entry(i))
+
+                    if result:
+                        for subscriber in storage._subscribers:
+                            subscriber(self._next_entry_index, result)
+
                     self._next_entry_index = entry_index
-                    return
-
-                result = []
-                for i in range(self._next_entry_index, entry_index):
-                    result.append(storage.get_entry(i))
-
-                if result:
-                    for subscriber in storage._subscribers:
-                        subscriber(self._next_entry_index, result)
-
-                self._next_entry_index = entry_index
 
         directory = os.path.dirname(StorageWriter.get_storage_path(self.pair, 0))
         event_handler = Handler()
