@@ -34,21 +34,28 @@ class PricebookView(object):
         return self._processor.is_ready
 
     def fast_forward_to(self, timestamp):
+        previous_entry = None
         while True:
             entry = self._reader.get_entry(self._current_index)
             if entry is None:
                 if self.is_synchronized:
                     self._reader.get_entry(self._current_index)
-                    return  # it is OK to end up before the timestamp - it means that no change till the timestamp arrived
+                    # it is OK to end up before the timestamp - it means that no change till the timestamp arrived
+                    return False  # desired time was not reached
 
                 raise TradeEntryNotAvailableException(self.pair, timestamp, self._current_index)
 
-            if not entry.is_service_entry and entry.timestamp > timestamp:
-                # stop when required time is reached
-                # (however, don't stop before all service entries are consumed)
-                break
+            if entry.timestamp > timestamp:
+                if not entry.is_service_entry:
+                    # we can break easily here
+                    return True
+
+                if previous_entry and not previous_entry.is_service_entry:
+                    # on the edge between service entries, we can stop before
+                    return True
 
             self._process_entry(entry)
+            previous_entry = entry
 
     def forward_to_next_change(self):
         entry = self._reader.get_entry(self._current_index)

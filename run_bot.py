@@ -1,4 +1,5 @@
 import sys
+import time
 
 from bots.random_bot import RandomBot
 from data.storage_reader import StorageReader
@@ -25,4 +26,8 @@ bot = RandomBot()
 market = Market("EUR", market_pairs, connector)
 
 executor = BotExecutor(bot, market, 1000.0)
+start = time.time()
 executor.run()
+end = time.time()
+
+print(f"RUN DURATION: {end - start}")

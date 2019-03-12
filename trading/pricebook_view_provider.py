@@ -9,7 +9,7 @@ class PricebookViewProvider(object):
     cached_pricebook_view_state_count_limit = 20
 
     # how long fast forwarding update for a cache entry can be issued
-    fast_forward_cache_seconds_limit = 20.0
+    fast_forward_cache_seconds_limit = 200.0
 
     def __init__(self, reader):
         self._reader = reader
@@ -20,17 +20,23 @@ class PricebookViewProvider(object):
         reader = self._reader
 
         cached_state = self._get_fastforwardable_cache_entry(timestamp)
+        is_cache_miss = False
         if cached_state is None:
             # nothing helpful in the cache was found
             # create state from scratch
+            is_cache_miss = True
             start_index = reader.find_pricebook_start(timestamp)
             print(f"Cache miss {self._reader.pair} {timestamp} start: {start_index}")
             cached_state = PricebookProcessorState(start_index, 0.0)
 
         view = PricebookView(cached_state, reader)
-        view.fast_forward_to(timestamp)
+        if view.fast_forward_to(timestamp) and is_cache_miss:
+            # we know that the best found for the query timestamp -> cache it
+            new_state = view._dump_state()
+            new_state.current_time = timestamp
+            self._put_to_cache(new_state)
 
-        if view._current_time - cached_state.current_time > 2 * self.fast_forward_cache_seconds_limit / self.cached_pricebook_view_state_count_limit:
+        if view._current_time - cached_state.current_time > self.fast_forward_cache_seconds_limit / self.cached_pricebook_view_state_count_limit:
             new_state = view._dump_state()
             self._put_to_cache(new_state)
 
