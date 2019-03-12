@@ -5,6 +5,7 @@ from threading import Thread, RLock
 from typing import List, Dict
 
 from data.storage_reader import StorageReader
+from data.storage_writer import StorageWriter
 from data.trade_entry import TradeEntry
 from networking.socket_client import SocketClient
 
@@ -58,8 +59,9 @@ class TradingEndpoint(object):
 
             chunk.extend(TradeEntry.to_chunk(entry))
 
-        base64_chunk = base64.b64encode(bytearray(chunk)).decode("ascii")
-        for client in self._logged_clients.values():
+        base64_chunk = self._encode_chunk(chunk)
+        clients = list(self._logged_clients.values())
+        for client in clients:
             self._send_entries_chunk(client, pair, first_entry_index, base64_chunk)
 
     def _send_entries_chunk(self, socket_client: SocketClient, pair: str, first_entry_index: int, base64_chunk):
@@ -89,10 +91,32 @@ class TradingEndpoint(object):
                 if command is None:
                     break  # client disconnected
 
-                if command["name"] == "get_block":
-                    raise NotImplementedError("get_block")
+                c = command.get("name", None)
+                response = {"id": command.get("id", None)}
+
+                if c == "get_bucket":
+                    pair = command["pair"]
+                    bucket_index = int(command["bucket_index"])
+
+                    storage = self._storages[pair]
+                    chunk = storage.get_bucket_chunk(bucket_index)
+                    response["bucket"] = self._encode_chunk(chunk)
+
+                elif c == "find_pricebook_start":
+                    pair = command["pair"]
+                    start = float(command["start"])
+
+                    storage = self._storages[pair]
+                    start_index = storage.find_pricebook_start(start)
+                    bucket_index = int(start_index / StorageWriter.bucket_entry_count)
+                    #chunk = storage.get_bucket_chunk(bucket_index)
+                    #response["bucket"] = self._encode_chunk(chunk)
+                    response["bucket_index"] = bucket_index
+
                 else:
-                    raise AssertionError(f"Unknown client received {command}")
+                    raise AssertionError(f"Unknown command received: {command}")
+
+                client.send_json(response)
 
         except:
             traceback.print_exc()
@@ -114,3 +138,7 @@ class TradingEndpoint(object):
             print("accepting clients...")
             client_socket, addr = s.accept()
             Thread(target=self._handle_client, args=[client_socket, addr], daemon=True).start()
+
+    def _encode_chunk(self, chunk):
+        base64_chunk = base64.b64encode(bytearray(chunk)).decode("ascii")
+        return base64_chunk

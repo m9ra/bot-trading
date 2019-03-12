@@ -12,6 +12,14 @@ class CurrencyHistory(object):
         self._current_time = None
 
     @property
+    def currencies(self):
+        return self._market.currencies
+
+    @property
+    def timestamp(self):
+        return self._current_time
+
+    @property
     def is_available(self):
         try:
             for pair in self._market.direct_currency_pairs:

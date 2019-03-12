@@ -14,6 +14,12 @@ class Fund(object):
     def cap_to(self, limit):
         return Fund(min(self._amount, limit), self._currency)
 
+    def soft_cap_to(self, limit, soft_ratio=2.0):
+        if self._amount < limit * soft_ratio:
+            return Fund(self._amount, self._currency)
+
+        return Fund(min(self._amount, limit), self._currency)
+
     def __repr__(self):
         return f"{self.amount} {self._currency}"
 

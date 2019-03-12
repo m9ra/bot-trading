@@ -23,10 +23,8 @@ class PricebookViewProvider(object):
         if cached_state is None:
             # nothing helpful in the cache was found
             # create state from scratch
-            print(f"Cache miss: {timestamp}")
-
             start_index = reader.find_pricebook_start(timestamp)
-            print(f"{self._reader.pair} {timestamp} start: {start_index}")
+            print(f"Cache miss {self._reader.pair} {timestamp} start: {start_index}")
             cached_state = PricebookProcessorState(start_index, 0.0)
 
         view = PricebookView(cached_state, reader)

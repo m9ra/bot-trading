@@ -38,6 +38,7 @@ class PricebookView(object):
             entry = self._reader.get_entry(self._current_index)
             if entry is None:
                 if self.is_synchronized:
+                    self._reader.get_entry(self._current_index)
                     return  # it is OK to end up before the timestamp - it means that no change till the timestamp arrived
 
                 raise TradeEntryNotAvailableException(self.pair, timestamp, self._current_index)

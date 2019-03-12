@@ -10,7 +10,7 @@ class CurrencyPosition(object):
     def total_amount(self):
         return sum(bucket["amount"] for bucket in self._buckets)
 
-    def get_profitable_amount(self, market, gain):
+    def get_amount_with(self, market, gain):
         accumulator = 0.0
         for bucket in self._buckets:
             amount = bucket["amount"]

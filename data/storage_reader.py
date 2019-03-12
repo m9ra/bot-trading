@@ -37,21 +37,38 @@ class StorageReader(EntryReaderBase):
     def get_bucket_count(self):
         return int(self.get_entry_count() / StorageWriter.bucket_entry_count)
 
-    def find_pricebook_start(self, start):
+    def find_pricebook_start(self, target):
         interval_start = 0
         interval_end = self.get_bucket_count() - 1
+        current_entry = None
         # find the nearest lower index (binary search on buckets)
-        while interval_end - interval_start > 1:
+        while interval_end - interval_start > 1 or current_entry.timestamp > target:
             current_bucket = int((interval_end + interval_start) / 2)
             current_position = current_bucket * StorageWriter.bucket_entry_count
             current_entry = self.get_entry(current_position)
 
-            if current_entry.timestamp > start:
+            if target < current_entry.timestamp:
                 interval_end = current_bucket
             else:
                 interval_start = current_bucket
 
-        return interval_start * StorageWriter.bucket_entry_count
+            if interval_start == interval_end:
+                break
+
+        return current_bucket * StorageWriter.bucket_entry_count
+
+    def get_bucket_chunk(self, bucket_index):
+        bucket_size = StorageWriter.bucket_entry_count
+        start_entry_index = bucket_index * bucket_size
+        end_entry_index = min(start_entry_index + bucket_size, self.get_entry_count())
+
+        chunk_size = int((end_entry_index - start_entry_index) * TradeEntry.chunk_size)
+        file, in_file_index = self._get_file(start_entry_index)
+        start_offset = int(in_file_index * TradeEntry.chunk_size)
+
+        # todo add locking
+        file.seek(start_offset, SEEK_SET)
+        return file.read(chunk_size)
 
     def subscribe(self, feed_handler: Callable[[int, List[TradeEntry]], None]):
         if self._subscribers:

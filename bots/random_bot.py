@@ -1,35 +1,49 @@
+import operator
 import random
+import time
 
 from bots.bot_base import BotBase
 from trading.portfolio_controller import PortfolioController
+from trading.utils import calculate_price_deltas, filter_currencies
 
 
 class RandomBot(BotBase):
+    def __init__(self):
+        super().__init__()
+        self._last_conversion_time = None
+
     def update_portfolio(self, portfolio: PortfolioController):
-        history = portfolio.get_history(seconds_back=10)
+        history = portfolio.get_history(seconds_back=60)
         present = portfolio.get_history(seconds_back=0)
+        min_trade_back_gain = 1.01  # don't trade currencies that did not reached the gain yet
 
         if not history.is_available:
             # the requested history is not available (probably too far to the past?)
             return
 
-        best_delta = None
-        best_currency = None
-        for currency in portfolio.currencies:
-            price_delta = present.get_unit_value(currency) - history.get_unit_value(currency)
-            if best_delta is None or price_delta > best_delta:
-                best_delta = price_delta
-                best_currency = currency
+        for fund in portfolio.get_funds_with(gain_greater_than=1.05, force_include_target=False):
+            # in case something is making profit, cash it back
+            print(f"Cash back {fund}")
+            print(portfolio._current_portfolio_state)
+            portfolio.request_conversion(fund, portfolio.target_currency)
+            return
 
-        funds = portfolio.get_funds_better_than(
-            gain=1.005)  # trade funds only if greater than 0.5% increase was observed
-        if not funds:
-            return  # there is no fund that could be used now
+        deltas = calculate_price_deltas(present, history)
+        best_currency, best_delta = max(deltas.items(), key=operator.itemgetter(1))
 
-        source_fund = random.choice(funds)
-        if source_fund.currency != best_currency:
-            if source_fund.currency == portfolio.target_currency:
-                source_fund = source_fund.cap_to(100)
+        profitable_currency_delta = filter_currencies(deltas, portfolio, gain=min_trade_back_gain)
+        if not profitable_currency_delta:
+            # no profitable fund is available
+            return
 
-            print(portfolio.total_value)
-            portfolio.request_conversion(source_fund, best_currency)
+        # get worst currency that we have and have some gain already
+        worst_currency, worst_delta = min(profitable_currency_delta.items(), key=operator.itemgetter(1))
+        if worst_currency == best_currency:
+            return  # no trade here
+
+        source_fund = portfolio.get_fund_with(worst_currency, gain_greater_than=min_trade_back_gain)
+        if source_fund.currency == portfolio.target_currency:
+            source_fund = source_fund.soft_cap_to(50)
+
+        self._last_conversion_time = present.timestamp
+        portfolio.request_conversion(source_fund, best_currency)
