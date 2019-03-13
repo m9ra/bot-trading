@@ -1,8 +1,8 @@
 from collections import defaultdict
 from typing import List
 
-from data.entry_reader_base import EntryReaderBase
-from data.trade_entry import TradeEntry
+from core.data.entry_reader_base import EntryReaderBase
+from core.data.trade_entry import TradeEntry
 from trading.connector_base import ConnectorBase
 
 

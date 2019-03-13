@@ -4,10 +4,10 @@ import traceback
 from threading import Thread, RLock
 from typing import List, Dict
 
-from data.storage_reader import StorageReader
-from data.storage_writer import StorageWriter
-from data.trade_entry import TradeEntry
-from networking.socket_client import SocketClient
+from core.data.storage_reader import StorageReader
+from core.data.storage_writer import StorageWriter
+from core.data.trade_entry import TradeEntry
+from core.networking.socket_client import SocketClient
 
 
 class TradingEndpoint(object):
@@ -82,8 +82,14 @@ class TradingEndpoint(object):
             if not username:
                 return
 
+            pairs_info = {}
+            for pair, storage in self._storages.items():
+                pairs_info[pair] = {
+                    "entry_count": storage.get_entry_count()
+                }
+
             client.send_json({
-                "pairs": list(self._storages.keys())
+                "pairs_info": pairs_info
             })
 
             while client.is_connected:
@@ -94,12 +100,14 @@ class TradingEndpoint(object):
                 c = command.get("name", None)
                 response = {"id": command.get("id", None)}
 
-                if c == "get_bucket":
+                if c == "async_get_bucket":
                     pair = command["pair"]
                     bucket_index = int(command["bucket_index"])
 
                     storage = self._storages[pair]
                     chunk = storage.get_bucket_chunk(bucket_index)
+                    response["pair"] = pair
+                    response["bucket_index"] = bucket_index
                     response["bucket"] = self._encode_chunk(chunk)
 
                 elif c == "find_pricebook_start":
@@ -109,8 +117,8 @@ class TradingEndpoint(object):
                     storage = self._storages[pair]
                     start_index = storage.find_pricebook_start(start)
                     bucket_index = int(start_index / StorageWriter.bucket_entry_count)
-                    #chunk = storage.get_bucket_chunk(bucket_index)
-                    #response["bucket"] = self._encode_chunk(chunk)
+                    # chunk = storage.get_bucket_chunk(bucket_index)
+                    # response["bucket"] = self._encode_chunk(chunk)
                     response["bucket_index"] = bucket_index
 
                 else:

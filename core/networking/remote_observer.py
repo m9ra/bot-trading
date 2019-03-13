@@ -3,10 +3,11 @@ import time
 from threading import Thread, RLock, Event
 from typing import List, Dict, Any
 
-from data.storage_writer import StorageWriter
-from data.trade_entry import TradeEntry
-from networking.remote_entry_reader import RemoteEntryReader
-from networking.socket_client import SocketClient
+from core.data.storage_writer import StorageWriter
+from core.data.trade_entry import TradeEntry
+from core.messages import log_cache
+from core.networking.remote_entry_reader import RemoteEntryReader
+from core.networking.socket_client import SocketClient
 
 
 class RemoteObserver(object):
@@ -29,11 +30,13 @@ class RemoteObserver(object):
 
     def connect(self):
         self._client = self._create_client()
-        self._pairs = list(self._client.read_json()["pairs"])
+        welcome_message = self._client.read_json()
+        pairs_info = welcome_message["pairs_info"]
+        self._pairs = list(pairs_info.keys())
 
         readers = {}
-        for pair in self._pairs:
-            readers[pair] = RemoteEntryReader(pair, 0, self)
+        for pair, info in pairs_info.items():
+            readers[pair] = RemoteEntryReader(pair, info["entry_count"], self)
 
         self._readers = readers
 
@@ -59,19 +62,18 @@ class RemoteObserver(object):
         })
 
         index = int(response["bucket_index"])
-        #bucket_entries = self._decode_chunk(pair, response["bucket"])
-        #self._readers[pair]._receive_bucket(index, bucket_entries)
+        # bucket_entries = self._decode_chunk(pair, response["bucket"])
+        # self._readers[pair]._receive_bucket(index, bucket_entries)
 
         return index * StorageWriter.bucket_entry_count
 
-    def get_bucket(self, pair, bucket_index):
-        response = self._send_command({
-            "name": "get_bucket",
+    def async_get_bucket(self, pair, bucket_index):
+        log_cache(f"Requesting remote bucket {pair} {bucket_index}")
+        self._client.send_json({
+            "name": "async_get_bucket",
             "pair": pair,
             "bucket_index": bucket_index,
         })
-
-        return self._decode_chunk(pair, response["bucket"])
 
     def _send_command(self, command):
         with self._L_commands:
@@ -102,10 +104,14 @@ class RemoteObserver(object):
                 base64_chunk = message["c"]
 
                 entries = self._decode_chunk(pair, base64_chunk)
-                self._readers[pair]._receive_entries(start_entry_index, entries)
+                self._readers[pair]._receive_peek_entries(start_entry_index, entries)
+            elif "bucket" in message:
+                pair = message["pair"]
+                bucket_index = message["bucket_index"]
+                self._readers[pair]._receive_bucket(bucket_index, self._decode_chunk(pair, message["bucket"]))
+
             elif "id" in message:
                 # response for a command came
-                print(message)
                 id = message["id"]
                 self._command_results[id] = message
                 self._command_events[id].set()
@@ -113,7 +119,8 @@ class RemoteObserver(object):
             else:
                 raise AssertionError(f"Unknown message {message}")
 
-        print("Observer disconnected")
+        print("OBSERVER DISCONNECTED")
+        exit(1)
 
     def _create_client(self):
         client = SocketClient()

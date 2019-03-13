@@ -1,18 +1,19 @@
 import sys
+import time
 
-from bots.random_bot import RandomBot
-from networking.remote_observer import RemoteObserver
+from bots.baseline_bot import BaselineBot
+from core.data import StorageReader
 from trading.bot_executor import BotExecutor
 from trading.fullpass_connector import FullpassConnector
 from trading.market import Market
 from trading.peek_connector import PeekConnector
 
 connector_mode = sys.argv[1]
-observer = RemoteObserver("localhost:8769", "mvodolan@cz.ibm.com", "mypass")
-observer.connect()
 
-readers = observer.get_readers()
-market_pairs = observer.get_pairs()
+market_pairs = ["XRP/EUR", "XMR/EUR", "ETH/EUR", "REP/EUR"]
+readers = []
+for pair in market_pairs:
+    readers.append(StorageReader(pair))
 
 if connector_mode == "peek":
     connector = PeekConnector(readers)
@@ -21,8 +22,13 @@ elif connector_mode == "full":
 else:
     raise ValueError(f"Unknown connector mode {connector_mode}. Can be peek or full")
 
-bot = RandomBot()
+bot = BaselineBot()
 market = Market("EUR", market_pairs, connector)
 
 executor = BotExecutor(bot, market, 1000.0)
+start = time.time()
 executor.run()
+end = time.time()
+
+print()
+print(f"RUN DURATION: {end - start}")

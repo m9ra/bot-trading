@@ -1,8 +1,7 @@
-import traceback
 from typing import Dict
 
 from core.processors.processor_base import ProcessorBase
-from data.storage_writer import StorageWriter
+from core.data.storage_writer import StorageWriter
 
 ACTIVE_STORAGES: Dict[str, StorageWriter] = {}
 

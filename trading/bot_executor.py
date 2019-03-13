@@ -1,7 +1,8 @@
 import time
 
 from bots.bot_base import BotBase
-from data.storage_reader import TradeEntry
+from core.data.trade_entry import TradeEntry
+from core.messages import log_executor, log_fund, log_command
 from trading.market import Market
 from trading.portfolio_controller import PortfolioController
 
@@ -31,7 +32,7 @@ class BotExecutor(object):
         self._market.run()
 
     def receive(self, entry: TradeEntry):
-        print(".", end="", flush=True)
+        log_executor(".", end="", flush=True)
         self._register(self._market.current_time)
 
     def _register(self, timestamp):
@@ -48,11 +49,11 @@ class BotExecutor(object):
             self._last_bot_update = self._current_time
 
     def _consult_bot(self):
-        print(self._current_time)
+        log_executor(self._current_time)
 
         start = time.time()
         portfolio = PortfolioController(self._market, self._portfolio_state)
-        print(portfolio)
+        log_fund(portfolio)
         value_before = portfolio.total_value
         self._bot.update_portfolio(portfolio)
         end = time.time()
@@ -63,12 +64,11 @@ class BotExecutor(object):
         if not portfolio._commands:
             return
 
-        print(f"\nPortfolio value before: {value_before}")
+        log_command(f"Portfolio value before: {value_before}")
         for command in portfolio._commands:
-            print(f"\t{command}")
+            log_command(f"\t{command}")
             command.apply(self._portfolio_state)
-
-        print(f"Portfolio value after: {portfolio.total_value}\n")
+        log_command(f"Portfolio value after: {portfolio.total_value}\n")
 
     def _update_slack(self, new_time):
         # sync time with the bot execution delay

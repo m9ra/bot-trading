@@ -4,6 +4,8 @@ import traceback
 from threading import Lock
 from typing import Optional
 
+from core.messages import log_network
+
 
 class SocketClient(object):
     def __init__(self, socket=None):
@@ -22,10 +24,15 @@ class SocketClient(object):
         self._is_connected = True
 
     def disconnect(self):
-        self._socket.shutdown(socket.SHUT_RDWR)
+        try:
+            self._socket.shutdown(socket.SHUT_RDWR)
+        except Exception:
+            print("shutdown not clean")
+
         self._is_connected = False
 
     def send_json(self, data):
+        log_network(f"> {data}")
         json_data = json.dumps(data)
         self.send_string(json_data)
 
@@ -34,7 +41,9 @@ class SocketClient(object):
         if json_data is None or json_data == "":
             return None
 
-        return json.loads(json_data)
+        result = json.loads(json_data)
+        log_network(f"< {result}")
+        return result
 
     def send_string(self, raw_data):
         raw_data_bytes = raw_data.encode('utf-8')

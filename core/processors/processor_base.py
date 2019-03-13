@@ -1,4 +1,4 @@
-from data.trade_entry import TradeEntry
+from core.data.trade_entry import TradeEntry
 
 
 class ProcessorBase(object):

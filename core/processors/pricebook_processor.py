@@ -2,7 +2,7 @@ from typing import List
 
 from configuration import BOOK_DEPTH
 from core.processors.processor_base import ProcessorBase
-from data.trade_entry import TradeEntry
+from core.data.trade_entry import TradeEntry
 
 
 class PricebookProcessor(ProcessorBase):

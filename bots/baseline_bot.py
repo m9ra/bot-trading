@@ -1,13 +1,10 @@
 import operator
-import random
-import time
-
 from bots.bot_base import BotBase
 from trading.portfolio_controller import PortfolioController
 from trading.utils import calculate_price_deltas, filter_currencies
 
 
-class RandomBot(BotBase):
+class BaselineBot(BotBase):
     def __init__(self):
         super().__init__()
         self._last_conversion_time = None

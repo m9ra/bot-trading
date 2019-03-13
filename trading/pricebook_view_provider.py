@@ -1,7 +1,8 @@
 from typing import Optional
 
+from core.messages import log_cache
 from trading.pricebook_view import PricebookView
-from data.pricebook_processor_state import PricebookProcessorState
+from core.data.pricebook_processor_state import PricebookProcessorState
 
 
 class PricebookViewProvider(object):
@@ -26,12 +27,12 @@ class PricebookViewProvider(object):
             # create state from scratch
             is_cache_miss = True
             start_index = reader.find_pricebook_start(timestamp)
-            print(f"Cache miss {self._reader.pair} {timestamp} start: {start_index}")
+            log_cache(f"Requested remote pricebook start {reader.pair} {timestamp} start: {start_index}")
             cached_state = PricebookProcessorState(start_index, 0.0)
 
         view = PricebookView(cached_state, reader)
-        if view.fast_forward_to(timestamp) and is_cache_miss:
-            # we know that the best found for the query timestamp -> cache it
+        was_full_sync = view.fast_forward_to(timestamp)
+        if is_cache_miss:
             new_state = view._dump_state()
             new_state.current_time = timestamp
             self._put_to_cache(new_state)

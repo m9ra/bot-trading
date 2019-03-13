@@ -1,5 +1,5 @@
-from data.exceptions import TradeEntryNotAvailableException
-from data.parsing import parse_pair
+from core.data.exceptions import TradeEntryNotAvailableException
+from core.data.parsing import parse_pair
 from trading.connector_base import ConnectorBase
 from trading.fund import Fund
 from trading.pricebook_view import PricebookView

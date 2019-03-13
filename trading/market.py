@@ -1,8 +1,6 @@
 from typing import List
 
-from configuration import BOOK_DEPTH
-from data.parsing import parse_pair, make_pair
-from data.trade_entry import TradeEntry
+from core.data.parsing import parse_pair, make_pair
 from trading.connector_base import ConnectorBase
 from trading.currency_history import CurrencyHistory
 from trading.fund import Fund

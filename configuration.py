@@ -14,4 +14,10 @@ TRACKED_PAIRS = ["ADA/CAD", "ADA/ETH", "ADA/EUR", "ADA/USD", "ADA/XBT", "BCH/EUR
                  "XRP/USD", "ZEC/XBT", "ZEC/EUR", "ZEC/JPY", "ZEC/USD", "XTZ/CAD", "XTZ/ETH", "XTZ/EUR", "XTZ/USD",
                  "XTZ/XBT"]
 
+TRADING_ENDPOINT = "packa2.cz:8697"
+INITIAL_AMOUNT = 1000.0
+TARGET_CURRENCY = "EUR"
 
+# defines which logging messegas will show up
+# values NETWORK, CACHE, EXECUTOR, COMMAND, FUND
+LOG_LEVELS = {"CACHE", "EXECUTOR", "COMMAND", "FUND"}

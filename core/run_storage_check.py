@@ -1,6 +1,6 @@
 from configuration import TRACKED_PAIRS
-from data.storage_reader import StorageReader
-from data.storage_writer import StorageWriter
+from core.data.storage_reader import StorageReader
+from core.data.storage_writer import StorageWriter
 
 last_entry_counts = []
 readers = []
