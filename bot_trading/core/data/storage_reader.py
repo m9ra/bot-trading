@@ -49,7 +49,8 @@ class StorageReader(EntryReaderBase):
             current_position = current_bucket * StorageWriter.bucket_entry_count
             current_entry = self.get_entry(current_position)
 
-            if target < current_entry.timestamp:
+            if current_entry is None or target < current_entry.timestamp:
+                # todo how entry can be none?
                 interval_end = current_bucket
             else:
                 interval_start = current_bucket
