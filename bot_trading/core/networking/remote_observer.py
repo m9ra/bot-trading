@@ -1,3 +1,4 @@
+import _thread
 import base64
 import time
 from threading import Thread, RLock, Event
@@ -120,7 +121,7 @@ class RemoteObserver(object):
                 raise AssertionError(f"Unknown message {message}")
 
         print("OBSERVER DISCONNECTED")
-        exit(1)
+        _thread.interrupt_main()
 
     def _create_client(self):
         client = SocketClient()

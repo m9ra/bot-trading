@@ -1,3 +1,5 @@
+import os
+
 WS_URL_SANDBOX = "wss://ws-sandbox.kraken.com"
 WS_URL = "wss://ws.kraken.com"
 
@@ -14,7 +16,7 @@ TRACKED_PAIRS = ["ADA/CAD", "ADA/ETH", "ADA/EUR", "ADA/USD", "ADA/XBT", "BCH/EUR
                  "XRP/USD", "ZEC/XBT", "ZEC/EUR", "ZEC/JPY", "ZEC/USD", "XTZ/CAD", "XTZ/ETH", "XTZ/EUR", "XTZ/USD",
                  "XTZ/XBT"]
 
-TRADING_ENDPOINT = "packa2.cz:8697"
+TRADING_ENDPOINT = os.getenv("ENDPOINT", "packa2.cz:8697")
 INITIAL_AMOUNT = 1000.0
 TARGET_CURRENCY = "EUR"
 

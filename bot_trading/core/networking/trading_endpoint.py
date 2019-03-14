@@ -23,21 +23,21 @@ class TradingEndpoint(object):
     def start_accepting(self, port):
         Thread(target=self._accept_clients, args=[port], daemon=True).start()
 
-    def _login(self, client: SocketClient):
+    def _read_credentials(self, client: SocketClient):
         # receive login information
         login_message = client.read_json()
         if not login_message:
             return None
 
         username = login_message["username"]
+        client.username = username
+        return username
 
+    def _login(self, username: str, client: SocketClient):
         with self._L_clients:
-            client.username = username
             self._logout(username)  # logout possible previous client
             self._logged_clients[username] = client
-            print(f"Login: {username}")
-
-        return username
+            print(f"logged in: {username}")
 
     def _logout(self, username: str):
         with self._L_clients:
@@ -78,8 +78,9 @@ class TradingEndpoint(object):
         client = SocketClient(socket)
         username = None
         try:
-            username = self._login(client)
+            username = self._read_credentials(client)
             if not username:
+                print(f"username is missing")
                 return
 
             pairs_info = {}
@@ -91,6 +92,8 @@ class TradingEndpoint(object):
             client.send_json({
                 "pairs_info": pairs_info
             })
+
+            self._login(username, client)
 
             while client.is_connected:
                 command = client.read_json()
