@@ -19,8 +19,9 @@ class StorageReader(EntryReaderBase):
         super().__init__(pair)
 
     def get_entry_count(self):
-        file = self._get_last_file()
-        return self._get_file_entry_count(file)
+        file_index = self._get_last_file_index()
+        file = self._get_file_by_index(file_index)
+        return self._get_file_entry_count(file) + int(file_index * StorageWriter.file_entry_count)
 
     def get_date_range(self) -> Optional[Tuple[float, float]]:
         entry_count = self.get_entry_count()
