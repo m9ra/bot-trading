@@ -6,6 +6,26 @@
 {% block content %}
 <div class="container-fluid" style="margin-left:20px">
     <h1>{{username}}</h1>
+
+
+    <h2>Portfolio</h2>
+    {% for currency, position in portfolio_state["positions"].items() %}
+    <div>
+        <h4>Currency: <b>{{currency}}</b></h4>
+        {% set acc1 = [0.0] %}
+        {% set acc2 = [0.0] %}
+        {% for bucket in position %}
+        {% if acc1.append(acc1.pop(0) + bucket["amount"]) %}{% endif %}
+        {% if acc2.append(acc2.pop(0) + bucket["initial_value"]) %}{% endif %}
+
+        {% endfor %}
+
+        <p> Amount: {{ acc1[0] }}</p>
+        <p> Initial value: {{ acc2[0] }} €</p>
+    </div>
+    {% endfor %}
+
+    <h2>Command History</h2>
     NOT IMPLEMENTED YET...
 </div>
 

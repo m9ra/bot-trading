@@ -27,7 +27,8 @@ Bootstrap(web_server)
 
 @web_server.route("/profile/<username>")
 def profile(username):
-    return render_template("profile.html", username=username)
+    portfolio_state = trading_server.get_portfolio_state(username)
+    return render_template("profile.html", username=username, portfolio_state=portfolio_state)
 
 
 @web_server.route("/history")

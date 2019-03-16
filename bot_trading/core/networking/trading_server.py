@@ -54,6 +54,13 @@ class TradingServer(object):
     def is_user_online(self, username):
         return username in self._logged_clients
 
+    def get_portfolio_state(self, username):
+        user_data = self._get_user_data(username)
+        if user_data is None:
+            return None
+
+        return user_data["portfolio_state"]
+
     def run_server(self, port):
         Thread(target=self._accept_clients, args=[port], daemon=True).start()
         Thread(target=self._update_statistics, daemon=True).start()
