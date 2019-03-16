@@ -1,4 +1,5 @@
 import datetime
+import json
 import sys
 
 from flask import Flask, render_template, request, make_response
@@ -47,6 +48,46 @@ def dashboard():
     endpoint = configuration.TRADING_ENDPOINT
     return render_template("index.html", exchange_name=EXCHANGE_NAME, endpoint=endpoint,
                            supported_pairs=supported_pairs)
+
+
+@web_server.route("/pair_data/<pair>")
+def pair_data(pair):
+    pair = pair.replace("-", "/")
+    asks, timestamps, bids, pair = trading_server.get_history(pair, item_count=5000)
+
+    data = []
+    ass = []
+    bss = []
+
+    for i in range(len(timestamps)):
+        a = asks[i]
+        b = bids[i]
+
+        ass.append(a)
+        bss.append(b)
+
+        if i % 10 != 0:
+            continue
+
+        a = min(ass)
+        b = max(bss)
+        ass.clear()
+        bss.clear()
+
+        time = timestamps[i]
+
+        data.append({
+            "value": (a + b) / 2,
+            "u": a,
+            "l": b,
+            "date": time
+        })
+
+    result = {
+        "pair": f"{pair} spread history",
+        "data": data
+    }
+    return json.dumps(result)
 
 
 @web_server.template_filter('ctime')

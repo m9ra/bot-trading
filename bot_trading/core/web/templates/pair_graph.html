@@ -1,0 +1,30 @@
+<thead>
+<tr>
+    <th scope="col">User</th>
+    <th scope="col">Portfolio Value</th>
+    <th scope="col">Online Time</th>
+    <th scope="col">Accepted Transfers</th>
+    <th scope="col">Declined Transfers</th>
+</tr>
+</thead>
+{% for r in scores %}
+<tr class="clickable-row" data-href="/profile/{{r.username}}">
+    <td>
+        <div class="user_td">
+            {% if r.is_online %}
+            <img src="/static/online-icon.png" class="status_icon">
+            {% else %}
+            <img src="/static/offline-icon.png" class="status_icon">
+            {% endif %}
+
+            {{r.username}}
+        </div>
+    </td>
+    <td>{{'%0.2f' % r.portfolio_value}} €</td>
+    <td>{{r.total_time}}</td>
+    <td>{{r.accepted_command_count}}</td>
+    <td>{{r.declined_command_count}}</td>
+</tr>
+{% endfor %}
+
+

@@ -8,13 +8,8 @@
 
     <div class="row">
 
-        <div class="col-md-3">
-            <div style="height: 600px;background-color:lightgray;padding-top:250px;text-align:center">
-                <h2>TODO: Some live content</h2>
-            </div>
-        </div>
 
-        <div class="col-md-6">
+        <div class="col-md-5">
             <div class="head">
                 <h1>Exchange: <b>{{exchange_name}}</b></h1>
                 <h4><b>{{endpoint}}</b></h4>
@@ -23,15 +18,34 @@
             <table id="results_table" class="table table-hover">
             </table>
         </div>
-        <div class="col-md-3">
-            <div style="height: 600px;background-color:lightgray;padding-top:250px;text-align:center">
-                <h2>TODO: Some live content</h2>
-            </div>
+        <div class="col-md-7">
+            <div id="graph_slot1"></div>
+            <div id="graph_slot2"></div>
         </div>
 
-        <script src="{{ url_for('static', filename='live_manager.js') }}"></script>
+
         <script language="JavaScript">
 
+
+var PAIRS = {{supported_pairs|safe}};
+
+var SLOT1_PAIR = null;
+var SlOT2_PAIR = null;
+
+function getRandomPair(){
+    return PAIRS[Math.floor(Math.random()*PAIRS.length)];
+}
+
+function updatePairSelection(){
+    SLOT1_PAIR = getRandomPair();
+    SLOT2_PAIR = getRandomPair();
+    while(SLOT1_PAIR==SLOT2_PAIR){
+        SLOT2_PAIR = getRandomPair();
+    }
+}
+
+setInterval(loadTable, 30000);
+updatePairSelection();
 
 
 function loadTable(){
@@ -41,15 +55,68 @@ function loadTable(){
         });
  });
 }
-setInterval(loadTable, 1000)
+setInterval(loadTable, 1000);
 loadTable();
 
 
 
+function showGraph(slot, name, odata){
+    var data=[];
+    var minY=null;
+    var maxY=null;
+    for(var i in odata){
+        o = odata[i];
+        data.push({
+            date: new Date(o["date"]*1000),
+            u: o["u"],
+            l: o["l"],
+            value: o["value"]
+        })
+
+        if(minY==null || minY>o["l"])
+            minY=o["l"];
+
+        if(maxY==null || maxY<o["u"])
+            maxY=o["u"];
+    }
+    //data = MG.convert.date(artif_data, 'date');
+
+
+
+    MG.data_graphic({
+        title: name,
+        data: data,
+        full_width:true,
+        height: 400,
+        right: 40,
+        area: false,
+        target: '#' + slot,
+        show_secondary_x_label: false,
+        show_confidence_band: ['l', 'u'],
+        x_extended_ticks: true,
+        min_y_from_data: true,
+        max_y:maxY,
+        min_y:minY,
+        transition_on_update:false
+    });
+}
+
+function refreshGraphs(){
+    $.getJSON( "/pair_data/" + SLOT1_PAIR.replace("/","-"), function( json ) {
+        showGraph("graph_slot1", json.pair, json.data);
+    });
+
+    $.getJSON( "/pair_data/" + SLOT2_PAIR.replace("/","-"), function( json ) {
+        showGraph("graph_slot2", json.pair, json.data);
+    });
+}
+setInterval(refreshGraphs, 2000);
+refreshGraphs();
+
+
+
         </script>
-
     </div>
-
 </div>
 
 {% endblock %}

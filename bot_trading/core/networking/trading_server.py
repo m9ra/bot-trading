@@ -14,6 +14,7 @@ from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.networking.socket_client import SocketClient
+from bot_trading.core.processors.pricebook_processor import PricebookProcessor
 from bot_trading.core.runtime.execution import get_initial_portfolio_state
 from bot_trading.core.runtime.validation import validate_email
 from bot_trading.trading.market import Market
@@ -46,6 +47,45 @@ class TradingServer(object):
         self._market = Market(TARGET_CURRENCY, list(self._storages.keys()), connector)
 
         Thread(target=self._run_market, daemon=True).start()
+
+    @property
+    def currencies(self):
+        return list(self._storages.keys())
+
+    def get_history(self, currency, item_count):
+        selected_pair = None
+        for pair in self._storages.keys():
+            if currency in pair:
+                selected_pair = pair
+
+        if selected_pair is None:
+            return [], [], [], None
+
+        storage = self._storages[selected_pair]
+        last_entry_index = storage.get_entry_count()
+        first_entry_index = max(0, last_entry_index - item_count)
+        first_bucket_start = int(
+            first_entry_index / StorageWriter.bucket_entry_count) * StorageWriter.bucket_entry_count
+
+        processor = PricebookProcessor(selected_pair)
+        asks = []
+        bids = []
+        timestamps = []
+        for i in range(first_bucket_start, last_entry_index):
+            entry = storage.get_entry(i)
+            processor.accept(entry)
+            if i >= first_entry_index and processor.is_ready:
+                sl = processor.sell_levels
+                bl = processor.buy_levels
+
+                if not sl or not bl:
+                    continue
+
+                asks.append(sl[-1][0])
+                bids.append(bl[-1][0])
+                timestamps.append(processor.current_time)
+
+        return asks, timestamps, bids, selected_pair
 
     def load_accounts(self):
         with self._L_collection:
