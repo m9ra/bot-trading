@@ -1,26 +1,21 @@
 import time
+import datetime
+from copy import deepcopy
+from typing import Dict
 
 from bot_trading.bots.bot_base import BotBase
 from bot_trading.core.data.trade_entry import TradeEntry
-from bot_trading.core.messages import log_executor, log_fund, log_command
+from bot_trading.core.messages import log_executor, log_portfolio, log_command
+from bot_trading.core.runtime.portfolio_base import PortfolioBase
 from bot_trading.trading.market import Market
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 
 class BotExecutor(object):
-    def __init__(self, bot: BotBase, market: Market, initial_value: float):
+    def __init__(self, bot: BotBase, market: Market, portfolio: PortfolioBase):
         self._bot = bot
         self._market = market
-        self._portfolio_state = {
-            "positions": {
-                market.target_currency: [
-                    {
-                        "amount": initial_value,
-                        "initial_value": initial_value
-                    }
-                ]
-            }
-        }
+        self._portfolio = portfolio
 
         self._current_time = 0.0
         self._bot_slack = 0.0  # compensates for bot calculation time
@@ -32,7 +27,8 @@ class BotExecutor(object):
         self._market.run()
 
     def receive(self, entry: TradeEntry):
-        log_executor(".", end="", flush=True)
+        log_executor(f"\r......[MARKET_CLOCK] {datetime.datetime.fromtimestamp(self._current_time)}", end=" " * 5,
+                     flush=True)
         self._register(self._market.current_time)
 
     def _register(self, timestamp):
@@ -49,11 +45,11 @@ class BotExecutor(object):
             self._last_bot_update = self._current_time
 
     def _consult_bot(self):
-        log_executor(self._current_time)
+        log_executor(f"\r[MARKET_CLOCK] {datetime.datetime.fromtimestamp(self._current_time)}", end=" " * 30 + "\n")
 
         start = time.time()
-        portfolio = PortfolioController(self._market, self._portfolio_state)
-        log_fund(portfolio)
+        portfolio = PortfolioController(self._market, self._portfolio.get_state_copy())
+        log_portfolio(portfolio)
         value_before = portfolio.total_value
         self._bot.update_portfolio(portfolio)
         end = time.time()
@@ -67,8 +63,11 @@ class BotExecutor(object):
         log_command(f"Portfolio value before: {value_before}")
         for command in portfolio._commands:
             log_command(f"\t{command}")
-            command.apply(self._portfolio_state)
-        log_command(f"Portfolio value after: {portfolio.total_value}\n")
+            self._portfolio.execute(command)
+
+        portfolio._load_from_state(self._portfolio.get_state_copy())
+        after_value = portfolio.total_value
+        log_command(f"Portfolio value after: {after_value}\n")
 
     def _update_slack(self, new_time):
         # sync time with the bot execution delay

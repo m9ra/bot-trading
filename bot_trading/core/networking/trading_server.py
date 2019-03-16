@@ -1,27 +1,62 @@
 import base64
 import socket
+import time
 import traceback
+from copy import deepcopy
 from threading import Thread, RLock
 from typing import List, Dict
 
+import jsonpickle
+from pymongo import MongoClient
+
+from bot_trading.configuration import TARGET_CURRENCY, INITIAL_AMOUNT
 from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.networking.socket_client import SocketClient
+from bot_trading.core.runtime.execution import get_initial_portfolio_state
+from bot_trading.core.runtime.validation import validate_email
+from bot_trading.trading.market import Market
+from bot_trading.trading.peek_connector import PeekConnector
+from bot_trading.trading.portfolio_controller import PortfolioController
+
+_db_name = "bot_trading"
+_client = MongoClient()
+_db = _client[_db_name]
 
 
-class TradingEndpoint(object):
-    def __init__(self, storages: List[StorageReader]):
+class TradingServer(object):
+    def __init__(self, name, storages: List[StorageReader]):
+        self._L_collection = RLock()
+        self._L_market = RLock()
+
+        self._collection = _db[name]
+        # self._collection.users.drop()
+
         self._logged_clients: Dict[str, SocketClient] = {}
         self._L_clients = RLock()
         self._storages = {}
+        self._last_time_check = time.time()
 
         for storage in storages:
             self._storages[storage.pair] = storage
             storage.subscribe(self._feed_handler)
 
-    def start_accepting(self, port):
+        connector = PeekConnector(list(self._storages.values()))
+        self._market = Market(TARGET_CURRENCY, list(self._storages.keys()), connector)
+
+        Thread(target=self._run_market, daemon=True).start()
+
+    def load_accounts(self):
+        with self._L_collection:
+            return list(self._collection.users.find({}))
+
+    def is_user_online(self, username):
+        return username in self._logged_clients
+
+    def run_server(self, port):
         Thread(target=self._accept_clients, args=[port], daemon=True).start()
+        Thread(target=self._update_statistics, daemon=True).start()
 
     def _read_credentials(self, client: SocketClient):
         # receive login information
@@ -31,12 +66,22 @@ class TradingEndpoint(object):
 
         username = login_message["username"]
         client.username = username
-        return username
+
+        validate_email(username)
+        return username.split("@")[0]
 
     def _login(self, username: str, client: SocketClient):
         with self._L_clients:
             self._logout(username)  # logout possible previous client
             self._logged_clients[username] = client
+
+            with self._L_collection:
+                self._ensure_default(username, "accepted_command_count", 0)
+                self._ensure_default(username, "declined_command_count", 0)
+                self._ensure_default(username, "total_seconds", 0)
+                self._ensure_default(username, "portfolio_value", INITIAL_AMOUNT)
+                self._ensure_default(username, "portfolio_state", get_initial_portfolio_state())
+
             print(f"logged in: {username}")
 
     def _logout(self, username: str):
@@ -45,6 +90,42 @@ class TradingEndpoint(object):
             if client:
                 print(f"Logout: {username}")
                 client.disconnect()
+
+    def _update_statistics(self):
+        while True:
+            # todo calculate portfolio value
+
+            current_time = time.time()
+            extra_time = current_time - self._last_time_check
+            self._last_time_check = current_time
+
+            with self._L_collection:
+                for user_data in self._collection.users.find({}):
+                    username = user_data["_id"]
+                    # calculate current value
+                    portfolio = PortfolioController(self._market, user_data["portfolio_state"])
+
+                    update = {
+                        "$set": {
+                            "portfolio_value": portfolio.total_value.amount
+                        }
+                    }
+
+                    if self.is_user_online(username):
+                        update["$inc"] = {"total_seconds": extra_time}
+
+                    # update time and value
+                    self._collection.users.update({"_id": username}, update)
+
+            time.sleep(1)
+
+    def _ensure_default(self, username, field, value):
+        with self._L_collection:
+            if not self._collection.users.find_one({"_id": username}):
+                self._collection.users.insert({"_id": username})
+
+            self._collection.users.update({"_id": username, field: {"$exists": False}},
+                                          {"$set": {field: value}})
 
     def _feed_handler(self, first_entry_index: int, entries: List[TradeEntry]):
         if not self._logged_clients:
@@ -124,6 +205,41 @@ class TradingEndpoint(object):
                     # response["bucket"] = self._encode_chunk(chunk)
                     response["bucket_index"] = bucket_index
 
+                elif c == "receive_portfolio_state":
+                    user_data = self._get_user_data(username)
+                    response["portfolio_state"] = user_data["portfolio_state"]
+
+                elif c == "update_portfolio_state":
+                    update_command = jsonpickle.loads(command["update_command"])
+                    with self._L_collection:
+                        user_data = self._get_user_data(username)
+                        state = deepcopy(user_data["portfolio_state"])
+                        try:
+                            update_command.apply(state, self._market)
+                            db_update = {
+                                "$set": {
+                                    "portfolio_state": state
+                                },
+                                "$inc": {
+                                    "accepted_command_count": 1
+                                }
+                            }
+
+                            response["accepted"] = True
+                            response["portfolio_state"] = state
+                        except:
+                            traceback.print_exc()
+                            db_update = {
+                                "$inc": {
+                                    "declined_command_count": 1
+                                }
+                            }
+
+                        self._collection.users.update(
+                            {"_id": username},
+                            db_update
+                        )
+
                 else:
                     raise AssertionError(f"Unknown command received: {command}")
 
@@ -153,3 +269,10 @@ class TradingEndpoint(object):
     def _encode_chunk(self, chunk):
         base64_chunk = base64.b64encode(bytearray(chunk)).decode("ascii")
         return base64_chunk
+
+    def _get_user_data(self, username):
+        with self._L_collection:
+            return self._collection.users.find_one({"_id": username})
+
+    def _run_market(self):
+        self._market.run()

@@ -4,6 +4,8 @@ import time
 from threading import Thread, RLock, Event
 from typing import List, Dict, Any
 
+import jsonpickle
+
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.messages import log_cache
@@ -75,6 +77,17 @@ class RemoteObserver(object):
             "pair": pair,
             "bucket_index": bucket_index,
         })
+
+    def send_portfolio_command_request(self, command):
+        return self._send_command({
+            "name": "update_portfolio_state",
+            "update_command": jsonpickle.dumps(command)
+        })
+
+    def receive_portfolio_state(self):
+        return self._send_command({
+            "name": "receive_portfolio_state",
+        })["portfolio_state"]
 
     def _send_command(self, command):
         with self._L_commands:

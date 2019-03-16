@@ -40,3 +40,9 @@ class Fund(object):
             raise ValueError(f"Incompatible operation {self} + {other}")
 
         return Fund(self._amount + other._amount, self._currency)
+
+    def __gt__(self, fund):
+        if self._currency != fund.currency:
+            raise ValueError(f"Cannot compare funds of different currencies {self} > {fund}")
+
+        return self._amount.__gt__(fund.amount)

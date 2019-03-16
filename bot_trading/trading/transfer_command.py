@@ -5,14 +5,14 @@ from bot_trading.trading.market import Market
 
 
 class TransferCommand(object):
-    def __init__(self, market: Market, source: str, source_amount: float, target: str, target_amount: float):
-        self._market = market
+    def __init__(self, source: str, source_amount: float, target: str, target_amount: float):
+        # todo change boundaries + calculated target amount
         self._source = source
         self._source_amount = source_amount
         self._target = target
         self._target_amount = target_amount
 
-    def apply(self, portfolio_state):
+    def apply(self, portfolio_state, market: Market):
         # internal function that can be called only by the framework
         positions = portfolio_state["positions"]
         self._dc = deepcopy(positions)
@@ -20,7 +20,7 @@ class TransferCommand(object):
         # subtract amount from positions
         # todo algorithm considering initial_value for bucket selection would be useful
         pending_amount = self._source_amount
-        source_initial_value = self._market.get_value(self._source_amount, self._source).amount
+        source_initial_value = market.get_value(self._source_amount, self._source).amount
 
         # get required amount from source buckets
         for source_bucket in positions[self._source]:
@@ -41,7 +41,7 @@ class TransferCommand(object):
             positions[self._target] = []
 
         target_buckets = positions[self._target]
-        if self._target == self._market.target_currency:
+        if self._target == market.target_currency:
             target_bucket = target_buckets[0]
             source_initial_value = self._target_amount  # reset initial value of the target, so it can be traded further
         else:

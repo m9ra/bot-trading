@@ -1,6 +1,8 @@
+import datetime
 from typing import Dict
 
 from bot_trading.trading.currency_history import CurrencyHistory
+from bot_trading.trading.fund import Fund
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 
@@ -24,3 +26,12 @@ def filter_currencies(deltas: Dict[str, float], portfolio: PortfolioController, 
             result[currency] = delta
 
     return result
+
+
+def future_value(fund: Fund, target_currency: str, present: CurrencyHistory, future: CurrencyHistory):
+    converted_fund = present.after_conversion(fund, target_currency)
+    return future.get_value(converted_fund)
+
+
+def timestamp_to_datetime(timestamp):
+    return datetime.datetime.fromtimestamp(timestamp)

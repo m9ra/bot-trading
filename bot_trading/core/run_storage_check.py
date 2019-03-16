@@ -1,6 +1,6 @@
 from bot_trading.configuration import TRACKED_PAIRS
-from bot_trading.core import StorageReader
-from bot_trading.core import StorageWriter
+from bot_trading.core.data.storage_reader import StorageReader
+from bot_trading.core.data.storage_writer import StorageWriter
 
 last_entry_counts = []
 readers = []

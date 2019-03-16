@@ -23,6 +23,10 @@ class PricebookProcessor(ProcessorBase):
         return self._buy_container is not None and self._sell_container is not None
 
     @property
+    def current_time(self):
+        return self._current_time
+
+    @property
     def is_in_service_entry_area(self):
         return self._is_in_service_entry_area
 
@@ -34,7 +38,7 @@ class PricebookProcessor(ProcessorBase):
     @property
     def sell_levels(self):
         levels = self._get_levels(self._sell_container, False)
-        return reversed(levels)
+        return list(reversed(levels))
 
     @property
     def current_depth(self):
@@ -57,7 +61,7 @@ class PricebookProcessor(ProcessorBase):
         else:
             container = self._choose_container(is_buy, self._w_buy_container, self._w_sell_container)
 
-        if amount == 0.0:
+        if amount <= 1e-12:
             if price in container:
                 del container[price]
         else:
@@ -115,7 +119,7 @@ class PricebookProcessor(ProcessorBase):
             acc += border_value
             new_border = list(borders[i])
             new_border[1] = acc
-            borders[i] = tuple(new_border)
+            borders[i] = tuple(new_border + [border_value])
 
         return borders
 
@@ -159,3 +163,15 @@ class PricebookProcessor(ProcessorBase):
 
     def _choose_container(self, is_first, c1, c2):
         return c1 if is_first else c2
+
+    def print_pricebook(self):
+        sell_levels = self.sell_levels
+        buy_levels = self.buy_levels
+        print(f"PRICEBOOK {self._pair}")
+        print("SELLS")
+        for sell in sell_levels:
+            print(f"\t {sell}")
+
+        print("BUYS")
+        for buy in buy_levels:
+            print(f"\t {buy}")

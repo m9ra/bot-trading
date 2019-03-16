@@ -16,8 +16,8 @@ def log_executor(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def log_fund(message):
-    log("FUND", message)
+def log_portfolio(message):
+    log("PORTFOLIO", message)
 
 
 def log_command(message) -> object:

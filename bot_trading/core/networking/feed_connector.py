@@ -91,6 +91,7 @@ class FeedWriter(object):
 
     def receive(self):
         data = self._ws.recv()
+        #self._logger.info(f"<< {data}")
         return data
 
     def parse_event(self, data_obj: dict):
@@ -108,6 +109,8 @@ class FeedWriter(object):
         payloads = data_obj[1:]
         pair = self._channel_to_pair[channel_id]
         processor = self._pair_to_processor[pair]
+        processor.log_network_data(data_obj)
+
         for payload in payloads:
             for key, value in payload.items():
                 if key not in ["as", "bs", "a", "b"]:

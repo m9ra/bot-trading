@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}Bot Trading{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid" style="margin-left:20px">
+
+    <div class="row">
+
+        <div class="col-md-3">
+            <div style="height: 600px;background-color:lightgray;padding-top:250px;text-align:center">
+                <h2>TODO: Some live content</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="head">
+                <h1>Exchange: <b>{{exchange_name}}</b></h1>
+                <h4><b>{{endpoint}}</b></h4>
+            </div>
+
+            <table id="results_table" class="table table-hover">
+            </table>
+        </div>
+        <div class="col-md-3">
+            <div style="height: 600px;background-color:lightgray;padding-top:250px;text-align:center">
+                <h2>TODO: Some live content</h2>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', filename='live_manager.js') }}"></script>
+        <script language="JavaScript">
+
+
+
+function loadTable(){
+ $('#results_table').load('/results_table', function(){
+        $(".clickable-row").click(function() {
+            window.location = $(this).data("href");
+        });
+ });
+}
+setInterval(loadTable, 1000)
+loadTable();
+
+
+
+        </script>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -73,12 +73,12 @@ class PortfolioController(object):
         for intermediate_currency in transfer_path[1:]:
             new_fund = present.after_conversion(current_fund, intermediate_currency)
             self.put_command(
-                TransferCommand(self._market, current_fund.currency, current_fund.amount, new_fund.currency,
+                TransferCommand(current_fund.currency, current_fund.amount, new_fund.currency,
                                 new_fund.amount))
             current_fund = new_fund
 
     def put_command(self, command):
-        command.apply(self._current_portfolio_state)
+        command.apply(self._current_portfolio_state, self._market)
         self._commands.append(command)
 
         self._load_from_state(self._current_portfolio_state)

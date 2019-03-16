@@ -17,3 +17,7 @@ class ProcessorBase(object):
     def flush(self):
         # there is nothing to process by default
         pass
+
+    def log_network_data(self, data_obj):
+        # there is nothing to process by default
+        pass

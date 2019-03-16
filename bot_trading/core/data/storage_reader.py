@@ -11,6 +11,7 @@ from bot_trading.core.data.trade_entry import TradeEntry
 
 class StorageReader(EntryReaderBase):
     def __init__(self, pair):
+        self._L_seek = Lock()
         self._files = {}
         self._known_last_file_index = 0
 
@@ -69,9 +70,9 @@ class StorageReader(EntryReaderBase):
         file, in_file_index = self._get_file(start_entry_index)
         start_offset = int(in_file_index * TradeEntry.chunk_size)
 
-        # todo add locking
-        file.seek(start_offset, SEEK_SET)
-        return file.read(chunk_size)
+        with self._L_seek:
+            file.seek(start_offset, SEEK_SET)
+            return file.read(chunk_size)
 
     def subscribe(self, feed_handler: Callable[[int, List[TradeEntry]], None]):
         if self._subscribers:
@@ -97,7 +98,9 @@ class StorageReader(EntryReaderBase):
                 with self._L_event:
                     file_index = storage._get_last_file_index()
                     file = storage._get_file_by_index(file_index)
-                    file_end = file.seek(0, SEEK_END)
+                    with storage._L_seek:
+                        file_end = file.seek(0, SEEK_END)
+
                     entry_index = int(file_end / TradeEntry.chunk_size) + file_index * StorageWriter.file_entry_count
 
                     if self._next_entry_index is None:
@@ -127,8 +130,9 @@ class StorageReader(EntryReaderBase):
             return None
 
         chunk_size = TradeEntry.chunk_size
-        file.seek(in_file_entry_index * chunk_size, SEEK_SET)
-        chunk = file.read(chunk_size)
+        with self._L_seek:
+            file.seek(in_file_entry_index * chunk_size, SEEK_SET)
+            chunk = file.read(chunk_size)
 
         if len(chunk) == 0:
             return None
@@ -184,6 +188,8 @@ class StorageReader(EntryReaderBase):
         if file is None:
             return 0
 
-        file.seek(0, SEEK_END)
-        length = file.tell()
+        with self._L_seek:
+            file.seek(0, SEEK_END)
+            length = file.tell()
+
         return int(floor(length / TradeEntry.chunk_size))
