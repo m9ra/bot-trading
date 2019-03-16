@@ -84,7 +84,7 @@ def pair_data(pair):
         })
 
     result = {
-        "pair": f"{pair} spread history",
+        "pair": pair,
         "data": data
     }
     return json.dumps(result)

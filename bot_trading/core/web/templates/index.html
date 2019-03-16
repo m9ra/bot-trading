@@ -60,7 +60,7 @@ loadTable();
 
 
 
-function showGraph(slot, name, odata){
+function showGraph(slot, pair, odata){
     var data=[];
     var minY=null;
     var maxY=null;
@@ -84,7 +84,7 @@ function showGraph(slot, name, odata){
 
 
     MG.data_graphic({
-        title: name,
+        title: pair + " spread history",
         data: data,
         full_width:true,
         height: 400,
