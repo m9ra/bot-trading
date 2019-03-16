@@ -103,11 +103,13 @@ function showGraph(slot, name, odata){
 
 function refreshGraphs(){
     $.getJSON( "/pair_data/" + SLOT1_PAIR.replace("/","-"), function( json ) {
-        showGraph("graph_slot1", json.pair, json.data);
+        if(json.pair==SLOT1_pair)
+            showGraph("graph_slot1", json.pair, json.data);
     });
 
     $.getJSON( "/pair_data/" + SLOT2_PAIR.replace("/","-"), function( json ) {
-        showGraph("graph_slot2", json.pair, json.data);
+        if(json.pair==SLOT2_pair)
+            showGraph("graph_slot2", json.pair, json.data);
     });
 }
 setInterval(refreshGraphs, 2000);
