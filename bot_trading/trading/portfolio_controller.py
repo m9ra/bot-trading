@@ -56,7 +56,7 @@ class PortfolioController(object):
     def get_history(self, seconds_back) -> CurrencyHistory:
         return self._market.get_history(seconds_back)
 
-    def request_conversion(self, source_fund: Fund, target_currency: str):
+    def request_conversion(self, source_fund: Fund, target_currency: str, allowed_loss_ratio=0.0001):
         """Requests transfer of amount of source_currency to the given target_currency"""
         self._validate_currencies(source_fund, target_currency)
 
@@ -74,7 +74,7 @@ class PortfolioController(object):
             new_fund = present.after_conversion(current_fund, intermediate_currency)
             self.put_command(
                 TransferCommand(current_fund.currency, current_fund.amount, new_fund.currency,
-                                new_fund.amount))
+                                new_fund.amount * (1 - allowed_loss_ratio)))
             current_fund = new_fund
 
     def put_command(self, command):

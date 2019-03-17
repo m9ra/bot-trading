@@ -1,24 +1,27 @@
 import operator
-from copy import deepcopy
-
+from bot_trading.configuration import DUST_LEVEL, MIN_POSITION_BUCKET_VALUE
+from bot_trading.core.exceptions import PortfolioUpdateException
+from bot_trading.trading.fund import Fund
 from bot_trading.trading.market import Market
 
 
 class TransferCommand(object):
-    def __init__(self, source: str, source_amount: float, target: str, target_amount: float):
-        # todo change boundaries + calculated target amount
+    def __init__(self, source: str, source_amount: float, target: str, min_target_amount: float):
         self._source = source
         self._source_amount = source_amount
         self._target = target
-        self._target_amount = target_amount
+        self._min_target_amount = min_target_amount
 
     def apply(self, portfolio_state, market: Market):
-        # internal function that can be called only by the framework
-        positions = portfolio_state["positions"]
-        self._dc = deepcopy(positions)
+        target_amount = market.present.after_conversion(Fund(self._source_amount, self._source), self._target).amount
+        if target_amount < self._min_target_amount:
+            # the real target amount is not meeting the expectations
+            raise PortfolioUpdateException(
+                f"Requested {self._min_target_amount} but got only {target_amount} of {self._target}")
 
-        # subtract amount from positions
-        # todo algorithm considering initial_value for bucket selection would be useful
+        positions = portfolio_state["positions"]
+
+        # subtract amount from source positions
         pending_amount = self._source_amount
         source_initial_value = market.get_value(self._source_amount, self._source).amount
 
@@ -26,43 +29,41 @@ class TransferCommand(object):
         for source_bucket in positions[self._source]:
             amount = source_bucket["amount"]
             diff = min(amount, pending_amount)
-            source_bucket["amount"] = amount - diff
-            source_bucket["initial_value"] -= max(0.0,
-                                                  diff / self._source_amount * source_initial_value)  # proportional value
+            # calculate proportional value according to the amount subtracted
+            partial_initial_value = max(0.0, diff / self._source_amount * source_initial_value)
+            source_bucket["amount"] -= diff
+            source_bucket["initial_value"] -= partial_initial_value
             pending_amount -= diff
             if pending_amount <= 0:
                 break
 
-        if pending_amount > 1e-9:
-            raise ValueError(f"Missing {pending_amount}{self._source}.")
+        if pending_amount > DUST_LEVEL:
+            raise PortfolioUpdateException(f"Missing {pending_amount} {self._source}.")
 
-        # add amount to target bucket
         if self._target not in positions:
+            # ensure the target position exists
             positions[self._target] = []
 
+        # add amount to target bucket
         target_buckets = positions[self._target]
-        if self._target == market.target_currency:
-            target_bucket = target_buckets[0]
-            source_initial_value = self._target_amount  # reset initial value of the target, so it can be traded further
-        else:
-            target_buckets.append({"amount": 0, "initial_value": 0})
-            target_bucket = target_buckets[-1]
+        target_buckets.append({"amount": target_amount, "initial_value": source_initial_value})
 
-        target_bucket["amount"] += self._target_amount
-        target_bucket["initial_value"] += source_initial_value
-
-        self._shrink(positions)
+        self._postprocess_buckets(positions, market)
 
     def __repr__(self):
-        return f"Transfer {self._source_amount}{self._source} --> {self._target_amount}{self._target}"
+        return f"Transfer {self._source_amount} {self._source} --> {self._min_target_amount} {self._target}"
 
-    def _shrink(self, positions):
-        for position in positions.values():
+    def _postprocess_buckets(self, positions, market):
+        for currency, position in positions.items():
             for i, bucket in reversed(list(enumerate(position))):
-                if bucket["amount"] <= 1e-9:
-                    bucket["amount"] = 0  # prevent dust
+                if currency == market.target_currency:
+                    # reset initial value of target currency
+                    bucket["initial_value"] = bucket["amount"]
 
-                if bucket["initial_value"] <= 1e-9:
+                if bucket["amount"] < DUST_LEVEL:
+                    bucket["amount"] = 0  # discard the dust
+
+                if bucket["initial_value"] < DUST_LEVEL:
                     bucket["initial_value"] = 0
 
                 if bucket["amount"] <= 0 and i > 0:
@@ -74,7 +75,7 @@ class TransferCommand(object):
                     # nothing to merge
                     continue
 
-                if bucket["initial_value"] < 1.0:
+                if bucket["initial_value"] < MIN_POSITION_BUCKET_VALUE or currency == market.target_currency:
                     position[i - 1]["initial_value"] += bucket["initial_value"]
                     position[i - 1]["amount"] += bucket["amount"]
                     del position[i]

@@ -1,4 +1,4 @@
-from bot_trading.core.data.exceptions import TradeEntryNotAvailableException
+from bot_trading.core.exceptions import TradeEntryNotAvailableException
 from bot_trading.core.data.parsing import parse_pair
 from bot_trading.trading.connector_base import ConnectorBase
 from bot_trading.trading.fund import Fund

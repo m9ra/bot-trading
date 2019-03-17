@@ -1,4 +1,4 @@
-from bot_trading.core.data.exceptions import TradeEntryNotAvailableException
+from bot_trading.core.exceptions import TradeEntryNotAvailableException
 from bot_trading.core.data.parsing import parse_pair
 from bot_trading.core.data.pricebook_processor_state import PricebookProcessorState
 from bot_trading.core.data.trade_entry import TradeEntry

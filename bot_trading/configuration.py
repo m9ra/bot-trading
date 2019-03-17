@@ -16,10 +16,19 @@ TRACKED_PAIRS = ["ADA/CAD", "ADA/ETH", "ADA/EUR", "ADA/USD", "ADA/XBT", "BCH/EUR
                  "XRP/USD", "ZEC/XBT", "ZEC/EUR", "ZEC/JPY", "ZEC/USD", "XTZ/CAD", "XTZ/ETH", "XTZ/EUR", "XTZ/USD",
                  "XTZ/XBT"]
 
+DUST_LEVEL = 1e-9  # amounts below this will be considered dust and converted to zero
+MIN_POSITION_BUCKET_VALUE = 1.0  # if the position bucket value is lower, it will get merged to other bucket
+
 TRADING_ENDPOINT = os.getenv("ENDPOINT", "packa2.cz:8697")
 INITIAL_AMOUNT = 1000.0
 TARGET_CURRENCY = "EUR"
 
-# defines which logging messegas will show up
+# defines which logging messeges will show up
 # values NETWORK, CACHE, EXECUTOR, COMMAND, PORTFOLIO
-LOG_LEVELS = {"CACHE", "EXECUTOR", "COMMAND", "PORTFOLIO"}
+LOG_LEVELS = {
+    # "NETWORK",
+    "CACHE",
+    "EXECUTOR",
+    "COMMAND",
+    "PORTFOLIO"
+}

@@ -33,6 +33,11 @@ class Market(object):
     def current_time(self):
         return self._connector.current_time
 
+    @property
+    def present(self):
+        # todo this should be optimized
+        return self.get_history(0)
+
     def has_currency(self, currency):
         return currency in self._currencies
 

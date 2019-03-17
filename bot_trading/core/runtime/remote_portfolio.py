@@ -14,7 +14,7 @@ class RemotePortfolio(PortfolioBase):
         response = self._remote_observer.send_portfolio_command_request(command)
 
         if not response or not response.get("accepted"):
-            log_command(f"\t not accepted: {command}")
+            log_command(f"\t declined: {command}")
             return
 
         self._current_state = response["portfolio_state"]
