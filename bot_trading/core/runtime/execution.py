@@ -12,15 +12,29 @@ from bot_trading.trading.fullpass_connector import FullpassConnector
 from bot_trading.trading.market import Market
 from bot_trading.trading.peek_connector import PeekConnector
 
+HISTORY_MODE = "history"
+PEEK_MODE = "peek"
+
 
 def run_sandbox_trades(bot: BotBase):
-    market, _ = create_trading_env()
+    if len(sys.argv) != 3:
+        raise ValueError(f"Expecting command arguments: [username@is.email] [{HISTORY_MODE}|{PEEK_MODE}]")
+
+    username = sys.argv[1]
+    connector_mode = sys.argv[2]
+
+    market, _ = create_trading_env(connector_mode, username)
     portfolio = SandboxPortfolio(market, get_initial_portfolio_state())
     run_on_market(market, bot, portfolio)
 
 
 def run_real_trades(bot: BotBase):
-    market, observer = create_trading_env()
+    if len(sys.argv) != 2:
+        raise ValueError(f"Expecting command arguments: [username@is.email]")
+
+    username = sys.argv[1]
+
+    market, observer = create_trading_env(PEEK_MODE, username)
     portfolio = RemotePortfolio(observer)
     run_on_market(market, bot, portfolio)
 
@@ -47,16 +61,7 @@ def get_initial_portfolio_state():
     }
 
 
-def create_trading_env():
-    HISTORY_MODE = "history"
-    PEEK_MODE = "peek"
-
-    if len(sys.argv) != 3:
-        raise ValueError(f"Expecting command arguments: [{HISTORY_MODE}|{PEEK_MODE}] [username@is.email]")
-
-    connector_mode = sys.argv[1]
-    username = sys.argv[2]
-
+def create_trading_env(connector_mode, username):
     if connector_mode not in [HISTORY_MODE, PEEK_MODE]:
         raise ValueError(f"Invalid connector mode {connector_mode}")
 
