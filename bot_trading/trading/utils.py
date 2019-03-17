@@ -6,7 +6,7 @@ from bot_trading.trading.fund import Fund
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 
-def calculate_price_deltas(present: CurrencyHistory, history: CurrencyHistory) -> Dict[str, float]:
+def calculate_value_deltas(present: CurrencyHistory, history: CurrencyHistory) -> Dict[str, float]:
     result = {}
     for currency in present.currencies:
         price_delta = present.get_unit_value(currency) - history.get_unit_value(currency)
