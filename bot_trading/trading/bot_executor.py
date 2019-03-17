@@ -1,7 +1,5 @@
 import time
 import datetime
-from copy import deepcopy
-from typing import Dict
 
 from bot_trading.bots.bot_base import BotBase
 from bot_trading.core.data.trade_entry import TradeEntry
@@ -23,8 +21,12 @@ class BotExecutor(object):
         self._is_synchronized = False
 
     def run(self):
-        self._market.subscribe(self)
-        self._market.run()
+        try:
+            self._market.subscribe(self)
+            self._market.run()
+        except KeyboardInterrupt:
+            print()
+            print("EXECUTOR IS STOPPING")
 
     def receive(self, entry: TradeEntry):
         log_executor(f"\r......[MARKET_CLOCK] {datetime.datetime.fromtimestamp(self._current_time)}", end=" " * 5,

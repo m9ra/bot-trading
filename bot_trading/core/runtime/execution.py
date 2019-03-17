@@ -45,7 +45,7 @@ def run_on_market(market, bot, portfolio):
     executor.run()
     end = time.time()
     print()
-    print(f"RUN DURATION: {end - start} seconds")
+    print(f"WALLTIME DURATION: {end - start} seconds")
 
 
 def get_initial_portfolio_state():

@@ -36,6 +36,10 @@ class BucketProvider(object):
             self._write(current_index, entry)
             current_index += 1
 
+    def close(self):
+        for bucket in self._buckets.values():
+            bucket.close()
+
     def _write(self, entry_index, entry: TradeEntry):
         with self._L_entry_index:
             self._current_peek_entry_index = max(self._current_peek_entry_index, entry_index)

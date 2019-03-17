@@ -26,6 +26,11 @@ class RemoteEntryReader(EntryReaderBase):
     def subscribe(self, feed_handler: Callable[[int, List[TradeEntry]], None]):
         self._subscribers.append(feed_handler)
 
+    def close(self):
+        self._bucket_provider.close()
+        for subscriber in self._subscribers:
+            subscriber(-1, [None])
+
     def _receive_peek_entries(self, first_entry_index, entries: List[TradeEntry]):
         self._bucket_provider.write(first_entry_index, entries)
 

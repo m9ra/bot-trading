@@ -25,9 +25,9 @@ class ComplexBaselineBot(BotBase):
         # how much gain non-target funds need to be allowed for next transfers
         self.min_repeat_trade_gain = 1.01  # [ratio]
         # min gain for fund to be applicable for emergency sell outs
-        self.min_emergency_gain = 1.001  # [ratio]
+        self.min_emergency_gain = 1.005  # [ratio]
         # largest delta that is not triggering emergency
-        self.emergency_threshold_delta = 0.0001  # [delta]
+        self.emergency_threshold_delta = -0.01  # [delta]
 
     def update_portfolio(self, portfolio: PortfolioController):
 

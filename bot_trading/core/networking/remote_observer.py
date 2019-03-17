@@ -133,7 +133,19 @@ class RemoteObserver(object):
             else:
                 raise AssertionError(f"Unknown message {message}")
 
+        print()
         print("OBSERVER DISCONNECTED")
+        print("Starting cleanups")
+        print("\t release commands")
+        for event in self._command_events.values():
+            # release all commands
+            event.set()
+
+        print("\t release readers")
+        for reader in self._readers.values():
+            reader.close()
+
+        print("\t interrupt main")
         _thread.interrupt_main()
 
     def _create_client(self):

@@ -23,6 +23,14 @@ class BucketCache(object):
 
         self._entries: List[Any] = [self._not_requested] * StorageWriter.bucket_entry_count
 
+    def close(self):
+        if self.is_complete:
+            return  # no one can be blocked here
+
+        for entry in self._entries:
+            if isinstance(entry, Event):
+                entry.set()  # release all the requesters
+
     def write(self, bucket_offset: int, entry: TradeEntry):
         with self._L_entries:
             old_entry = self._entries[bucket_offset]

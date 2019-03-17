@@ -18,12 +18,12 @@ class PeekConnector(ConnectorBase):
     def _on_new_entries(self, first_entry_index: int, entries: List[TradeEntry]):
         current_entry_index = first_entry_index
         for entry in entries:
-            if entry is None:
-                continue
-
             self._entry_queue.put((current_entry_index, entry))
             current_entry_index += 1
 
     def blocking_get_next_entry(self):
         entry_index, entry = self._entry_queue.get(block=True)
+        if entry is None:
+            raise StopIteration()
+
         return entry
