@@ -203,7 +203,7 @@ class TradingServer(object):
             print(f"Client feed failed: {socket_client.username}")
 
     def _handle_client(self, socket, addr):
-        socket.setblocking(0)
+        socket.setblocking(False)
         client = SocketClient(socket)
         username = None
         try:

@@ -2,21 +2,30 @@ import datetime
 import json
 import sys
 
-from flask import Flask, render_template, request, make_response
+from flask import Flask, render_template
 from flask_bootstrap import Bootstrap
 
 from bot_trading import configuration
 from bot_trading.configuration import TRADING_ENDPOINT
 from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.networking.trading_server import TradingServer
+from bot_trading.core.web.history_cache import HistoryCache
 from bot_trading.core.web.score_record import ScoreRecord
 
 EXCHANGE_NAME = sys.argv[1]
 
 supported_pairs = ["XRP/EUR", "XMR/EUR", "ETH/EUR", "REP/EUR"]
+history_cache = {}
 readers = []
+print("Preparing readers")
 for pair in supported_pairs:
-    readers.append(StorageReader(pair))
+    print(f"\t {pair}")
+    storage = StorageReader(pair)
+    readers.append(storage)
+    history_cache[pair] = HistoryCache(storage, 5000, 3600)
+    history_cache[pair].get_data()
+
+print("readers are ready")
 
 trading_server = TradingServer(EXCHANGE_NAME, readers)
 trading_server.run_server(int(TRADING_ENDPOINT.split(":")[-1]))
@@ -53,39 +62,11 @@ def dashboard():
 @web_server.route("/pair_data/<pair>")
 def pair_data(pair):
     pair = pair.replace("-", "/")
-    asks, timestamps, bids, pair = trading_server.get_history(pair, item_count=5000)
-
-    data = []
-    ass = []
-    bss = []
-
-    for i in range(len(timestamps)):
-        a = asks[i]
-        b = bids[i]
-
-        ass.append(a)
-        bss.append(b)
-
-        if i % 10 != 0:
-            continue
-
-        a = min(ass)
-        b = max(bss)
-        ass.clear()
-        bss.clear()
-
-        time = timestamps[i]
-
-        data.append({
-            "value": (a + b) / 2,
-            "u": a,
-            "l": b,
-            "date": time
-        })
+    cache = history_cache[pair]
 
     result = {
         "pair": pair,
-        "data": data
+        "data": cache.get_data()
     }
     return json.dumps(result)
 
@@ -103,4 +84,4 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-web_server.run(debug=True, use_reloader=False, host='0.0.0.0', port=8698)
+web_server.run(debug=False, use_reloader=False, host='0.0.0.0', port=8698)

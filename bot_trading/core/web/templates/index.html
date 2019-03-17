@@ -50,12 +50,13 @@ updatePairSelection();
 
 function loadTable(){
  $('#results_table').load('/results_table', function(){
+        setTimeout(loadTable, 1000);
         $(".clickable-row").click(function() {
             window.location = $(this).data("href");
         });
  });
 }
-setInterval(loadTable, 1000);
+
 loadTable();
 
 
@@ -67,10 +68,10 @@ function showGraph(slot, pair, odata){
     for(var i in odata){
         o = odata[i];
         data.push({
-            date: new Date(o["date"]*1000),
+            date: new Date(o["d"]*1000),
             u: o["u"],
             l: o["l"],
-            value: o["value"]
+            value: (o["u"] + o["l"])/2
         })
 
         if(minY==null || minY>o["l"])
@@ -102,19 +103,18 @@ function showGraph(slot, pair, odata){
 }
 
 function refreshGraphs(){
+
     $.getJSON( "/pair_data/" + SLOT1_PAIR.replace("/","-"), function( json ) {
-        if(json.pair==SLOT1_PAIR)
-            showGraph("graph_slot1", json.pair, json.data);
-    });
-
-    $.getJSON( "/pair_data/" + SLOT2_PAIR.replace("/","-"), function( json ) {
-        if(json.pair==SLOT2_PAIR)
+        showGraph("graph_slot1", json.pair, json.data);
+        $.getJSON( "/pair_data/" + SLOT2_PAIR.replace("/","-"), function( json ) {
+            setTimeout(refreshGraphs, 2000);
             showGraph("graph_slot2", json.pair, json.data);
+        })
     });
-
-    setTimeout(refreshGraphs, 2000);
 }
 refreshGraphs();
+
+
 
 
 
