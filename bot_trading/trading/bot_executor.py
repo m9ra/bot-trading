@@ -62,7 +62,7 @@ class BotExecutor(object):
 
         log_command(f"Portfolio value before: {value_before}")
         for command in portfolio._commands:
-            log_command(f"\t{command}")
+            log_command(f"\t {command}")
             self._portfolio.execute(command)
 
         portfolio._load_from_state(self._portfolio.get_state_copy())

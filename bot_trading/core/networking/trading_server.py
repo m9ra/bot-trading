@@ -297,9 +297,11 @@ class TradingServer(object):
             traceback.print_exc()
             print(f"Exception for {addr}")
         finally:
-
             if username:
-                self._logout(username)
+                with self._L_clients:
+                    if self._logged_clients.get(username) == client:
+                        # if this socket client is still logged, log it out
+                        self._logout(username)
 
             print(f"Client disconnected: {username}")
 
