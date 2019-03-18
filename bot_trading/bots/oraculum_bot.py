@@ -14,4 +14,4 @@ class OraculumBot(BotBase):
         for fund in portfolio.funds:
             best_currency = max(portfolio.currencies, key=lambda currency: future_value(fund, currency, now, future))
             if best_currency != fund.currency:
-                portfolio.request_conversion(fund, best_currency)
+                portfolio.request_transfer(fund, best_currency)

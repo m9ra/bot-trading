@@ -59,7 +59,7 @@ class ComplexBaselineBot(BotBase):
             source_fund = source_fund.soft_cap_to(self.trade_chunk)
 
         self._last_conversion_time = present.timestamp
-        portfolio.request_conversion(source_fund, best_currency)
+        portfolio.request_transfer(source_fund, best_currency)
 
     def try_request_emergency_transfers(self, portfolio, deltas):
         has_emergency_transfer = False
@@ -74,7 +74,7 @@ class ComplexBaselineBot(BotBase):
 
             # in case, something we have is going down transfer it to target_currency
             print(f"Emergency transfer for {fund}")
-            portfolio.request_conversion(fund, portfolio.target_currency)
+            portfolio.request_transfer(fund, portfolio.target_currency)
             has_emergency_transfer = True
 
         return has_emergency_transfer

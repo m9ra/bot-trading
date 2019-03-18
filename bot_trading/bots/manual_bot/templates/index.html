@@ -1,0 +1,187 @@
+{% extends "bootstrap/base.html" %}
+
+{% block head %}
+{{super()}}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.css" />
+
+<style>
+    .portfolio_box {
+        float: left;
+        font-size: 17px;
+        margin: 20px 20px 0 0;
+        padding: 10px;
+        background-color: lightgreen;
+    }
+
+    .loosing{
+        background-color: lightcoral;
+    }
+
+    .price_box {
+        min-width: 100px;
+        float: left;
+        font-size: 17px;
+        margin: 20px 20px 0 0;
+        padding: 10px;
+        background-color: lightblue;
+    }
+
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.js"></script>
+{% endblock %}
+
+{% block title %}Manual Bot Interface{% endblock %}
+
+{% block navbar %}
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="/">Controller Pane</a></li>
+            </ul>
+        </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+
+</nav>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid" style="margin:10px">
+    <div class="row">
+        {% if message %}
+        <script>$.toast({text: '{{message}}', position: 'top-left'})</script>
+        {% endif %}
+
+        <font id="sync_notification" color="red">interface is connecting....</font>
+        <h2>Portfolio <span class="live-portfolio-value">?</span> EUR </h2>
+
+        {% for currency in supported_currencies %}
+        <div class="portfolio_box live-fund-{{currency}}">
+            <p>Amount: <b><span class="live-fund-amount-{{currency}}">?</span> {{currency}}</b></p>
+            <p>Initial Value: <span class="live-fund-initial-value-{{currency}}">?</span> EUR</p>
+            <p>Current Value: <span class="live-fund-value-{{currency}}">?</span> EUR</p>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <div class="row">
+        <h2>Prices</h2>
+        {% for c1, c2 in direct_pairs %}
+        <div class="price_box">
+            <p><b>1.0 {{c1}}</b></p>
+            <p>Sell for: <span class="live-price-sell-{{c1}}-{{c2}}">?</span> {{c2}}</p>
+            <p>Buy for: <span class="live-price-buy-{{c1}}-{{c2}}">?</span> {{c2}}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+
+    <form action="/" method="POST">
+        <div class="row">
+            <h3>Request Transfer</h3>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label for="source_currency">Source Currency</label>
+                    <select class="form-control" name="source_currency">
+                        {% for currency in supported_currencies %}
+                        <option>{{currency}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label for="source_amount">Source Amount</label>
+                    <input class="form-control" name="source_amount" placeholder="1.5, all">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label for="target_currency">Target Currency</label>
+                    <select class="form-control" name="target_currency">
+                        {% for currency in supported_currencies %}
+                        <option>{{currency}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <button name="submit" type="submit" value="request_transfer" class="btn btn-danger mb-2">Send Request
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<script>
+
+function trimByChar(string, character) {
+  const first = [...string].findIndex(char => char !== character);
+  const last = [...string].reverse().findIndex(char => char !== character);
+  return string.substring(first, string.length - last);
+}
+
+function roundValue(value, places){
+    return value.toFixed(places).toString();
+}
+
+function refreshInterface(){
+    $.getJSON("/interface_state", function(json){
+        $(".live-portfolio-value").text(roundValue(json["total_value"],2));
+
+        for(var currency in json["funds"]){
+           var info = json["funds"][currency];
+           $(".live-fund-amount-" + currency).text(roundValue(info["amount"],5));
+           $(".live-fund-initial-value-" + currency).text(roundValue(info["initial_value"],2));
+           $(".live-fund-value-" + currency).text(roundValue(info["current_value"],2));
+
+           var specifier = ".live-fund-" + currency
+           if(info["current_value"]<info["initial_value"]){
+                $(specifier).addClass("loosing");
+           }else{
+                $(specifier).removeClass("loosing");
+           }
+        }
+
+        for(var pair in json["prices"]){
+            var info = json["prices"][pair];
+            var buy = info["b"];
+            var sell = info["s"];
+            var p = pair.split("/");
+            var suffix = p[0] + "-" + p[1];
+            $(".live-price-buy-" + suffix).text(roundValue(buy, 2));
+            $(".live-price-sell-" + suffix).text(roundValue(sell, 2));
+        }
+    })
+    .complete(function(){
+        $('#sync_notification').hide();
+        setTimeout(refreshInterface, 1000);
+    });
+}
+
+
+refreshInterface();
+
+
+</script>
+
+{% endblock %}

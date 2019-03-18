@@ -12,6 +12,7 @@ from bot_trading.trading.portfolio_controller import PortfolioController
 class BotExecutor(object):
     def __init__(self, bot: BotBase, market: Market, portfolio: PortfolioBase):
         self._bot = bot
+        self._bot.portfolio_connector = portfolio
         self._market = market
         self._portfolio = portfolio
 

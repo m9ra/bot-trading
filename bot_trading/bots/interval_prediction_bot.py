@@ -22,7 +22,7 @@ class IntervalPredictionBot(BotBase):
         source, amount, target = self._get_largest_improvement(predicted_currency_gains, portfolio)
 
         if amount:
-            portfolio.request_conversion(source, amount, target)
+            portfolio.request_transfer(source, amount, target)
 
     def _predict_currency_gains(self, portfolio):
         """

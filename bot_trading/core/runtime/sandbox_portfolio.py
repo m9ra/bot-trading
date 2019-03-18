@@ -15,8 +15,10 @@ class SandboxPortfolio(PortfolioBase):
     def execute(self, command: TransferCommand):
         try:
             command.apply(self._current_state, self._market)
+            return True
         except PortfolioUpdateException:
             log_command(f"\t declined: {command}")
+            return False
 
     def get_state_copy(self):
         return deepcopy(self._current_state)

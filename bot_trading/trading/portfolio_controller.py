@@ -4,11 +4,12 @@ from typing import Dict, Any, List, Optional
 from bot_trading.trading.currency_history import CurrencyHistory
 from bot_trading.trading.currency_position import CurrencyPosition
 from bot_trading.trading.fund import Fund
+from bot_trading.trading.market import Market
 from bot_trading.trading.transfer_command import TransferCommand
 
 
 class PortfolioController(object):
-    def __init__(self, market, portfolio_state: Dict[str, Any]):
+    def __init__(self, market: Market, portfolio_state: Dict[str, Any]):
         self._initial_portfolio_state = deepcopy(portfolio_state)
 
         self._currency_positions: Dict[str, CurrencyPosition] = {}
@@ -31,6 +32,10 @@ class PortfolioController(object):
     def currencies(self) -> List[str]:
         """ Currencies that can be traded."""
         return self._market.currencies
+
+    @property
+    def pairs(self):
+        return self._market.direct_currency_pairs
 
     @property
     def funds(self) -> List[Fund]:
@@ -56,8 +61,12 @@ class PortfolioController(object):
     def get_history(self, seconds_back) -> CurrencyHistory:
         return self._market.get_history(seconds_back)
 
-    def request_conversion(self, source_fund: Fund, target_currency: str, allowed_loss_ratio=0.0001):
+    def request_transfer(self, source_fund: Fund, target_currency: str, allowed_loss_ratio=0.0001):
         """Requests transfer of amount of source_currency to the given target_currency"""
+        for command in self.create_transfer_commands(source_fund, target_currency, allowed_loss_ratio):
+            self.put_command(command)
+
+    def create_transfer_commands(self, source_fund: Fund, target_currency: str, allowed_loss_ratio=0.0001):
         self._validate_currencies(source_fund, target_currency)
 
         position = self._currency_positions.get(source_fund.currency)
@@ -69,13 +78,16 @@ class PortfolioController(object):
 
         present = self.present
 
+        result_commands = []
         current_fund = source_fund
         for intermediate_currency in transfer_path[1:]:
             new_fund = present.after_conversion(current_fund, intermediate_currency)
-            self.put_command(
+            result_commands.append(
                 TransferCommand(current_fund.currency, current_fund.amount, new_fund.currency,
                                 new_fund.amount * (1 - allowed_loss_ratio)))
             current_fund = new_fund
+
+        return result_commands
 
     def put_command(self, command):
         command.apply(self._current_portfolio_state, self._market)

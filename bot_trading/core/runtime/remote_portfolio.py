@@ -15,9 +15,10 @@ class RemotePortfolio(PortfolioBase):
 
         if not response or not response.get("accepted"):
             log_command(f"\t declined: {command}")
-            return
+            return False
 
         self._current_state = response["portfolio_state"]
+        return True
 
     def get_state_copy(self):
         if self._current_state is None:

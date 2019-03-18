@@ -30,7 +30,7 @@ class TransferCommand(object):
             amount = source_bucket["amount"]
             diff = min(amount, pending_amount)
             # calculate proportional value according to the amount subtracted
-            partial_initial_value = max(0.0, diff / self._source_amount * source_initial_value)
+            partial_initial_value = max(0.0, diff / amount)
             source_bucket["amount"] -= diff
             source_bucket["initial_value"] -= partial_initial_value
             pending_amount -= diff
@@ -66,8 +66,11 @@ class TransferCommand(object):
                 if bucket["initial_value"] < DUST_LEVEL:
                     bucket["initial_value"] = 0
 
-                if bucket["amount"] <= 0 and i > 0:
-                    del position[i]  # delete empty buckets, but keep at least one bucket per position
+                if bucket["amount"] <= 0:
+                    if i > 0:
+                        del position[i]  # delete empty buckets, but keep at least one bucket per position
+                    else:
+                        bucket["initial_value"] = 0 # keep initial value sane
 
             position.sort(key=operator.itemgetter("initial_value"), reverse=True)
             for i, bucket in reversed(list(enumerate(position))):
