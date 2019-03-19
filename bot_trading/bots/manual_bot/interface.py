@@ -13,7 +13,7 @@ from bot_trading.trading.portfolio_controller import PortfolioController
 class ManualBot(BotBase):
     def __init__(self, web_port, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.update_interval = 1.0
+        self.update_interval = 0.5
         self.web_port = web_port
 
         self.interface_state = None
@@ -76,19 +76,20 @@ class ManualBot(BotBase):
         direct_pairs = sorted(direct_pairs)
         direct_pairs = [parse_pair(pair) for pair in direct_pairs]
 
+        @server.route("/request_transfer", methods=["POST"])
+        def _request_transfer():
+            source_currency = request.json.get("source_currency")
+            source_amount = request.json.get("source_amount")
+            target_currency = request.json.get("target_currency")
+
+            message = self._web_request_transfer(source_amount, source_currency, target_currency)
+            return jsonify({"message": message})
+
         @server.route("/", methods=["GET", "POST"])
         def _interface_index():
-            message = None
-            if request.form.get("submit") == "request_transfer":
-                source_currency = request.form.get("source_currency")
-                source_amount = request.form.get("source_amount")
-                target_currency = request.form.get("target_currency")
-
-                message = self._web_request_transfer(source_amount, source_currency, target_currency)
-
             return render_template("index.html",
                                    supported_currencies=supported_currencies,
-                                   direct_pairs=direct_pairs, message=message)
+                                   direct_pairs=direct_pairs)
 
         @server.route("/interface_state")
         def _interface_state():
