@@ -91,6 +91,16 @@ class TradingServer(object):
         with self._L_collection:
             return list(self._collection.users.find({}))
 
+    def load_transfer_history(self, username=None):
+        with self._L_collection:
+            if username:
+                query = {"username": username}
+            else:
+                query = {}
+
+            cursor = self._collection.transfers.find(query)
+            return list(cursor.sort("real_time", -1).limit(100))
+
     def is_user_online(self, username):
         return username in self._logged_clients
 
@@ -263,7 +273,7 @@ class TradingServer(object):
                         user_data = self._get_user_data(username)
                         state = deepcopy(user_data["portfolio_state"])
                         try:
-                            update_command.apply(state, self._market)
+                            update_result = update_command.apply(state, self._market)
                             db_update = {
                                 "$set": {
                                     "portfolio_state": state
@@ -273,8 +283,16 @@ class TradingServer(object):
                                 }
                             }
 
+                            self._collection.transfers.insert({
+                                "username": username,
+                                "real_time": time.time(),
+                                "market_timestamp": self._market.current_time,
+                                "update_result": update_result
+                            })
+
                             response["accepted"] = True
                             response["portfolio_state"] = state
+
                         except:
                             traceback.print_exc()
                             db_update = {

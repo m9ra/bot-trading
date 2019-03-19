@@ -5,26 +5,61 @@
 
 {% block content %}
 <div class="container-fluid" style="margin-left:20px">
-    <h1>{{username}}</h1>
-    <h2>Portfolio</h2>
-    {% for currency, position in portfolio_state["positions"].items() %}
-    <div>
-        <h4>Currency: <b>{{currency}}</b></h4>
+    <div class="row">
+        <h1>{{username}}</h1>
+        <h2>Portfolio</h2>
+
+        {% for currency, position in portfolio_state["positions"].items() %}
+
         {% set acc1 = [0.0] %}
         {% set acc2 = [0.0] %}
-
         {% for bucket in position %}
         {% if acc1.append(acc1.pop(0) + bucket["amount"]) %}{% endif %}
         {% if acc2.append(acc2.pop(0) + bucket["initial_value"]) %}{% endif %}
         {% endfor %}
 
-        <p> Amount: {{ acc1[0] }}</p>
-        <p> Initial value: {{ acc2[0] }} €</p>
-    </div>
-    {% endfor %}
+        {% if acc1[0] > 0 %}
 
-    <h2>Command History</h2>
-    NOT IMPLEMENTED YET...
+        <div style="float:left;margin:10px;">
+            <h4>Currency: <b>{{currency}}</b></h4>
+
+            <p> Amount: {{ acc1[0] }}</p>
+            <p> Initial value: {{ acc2[0] }} €</p>
+        </div>
+
+        {% endif %}
+        {% endfor %}
+    </div>
+
+
+    <div class="row">
+        <h2>Transfer History</h2>
+
+        <div class="col-md-6">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Source</th>
+                    <th scope="col">Target</th>
+                    <th scope="col">In Value</th>
+                    <th scope="col">Out Value</th>
+                </tr>
+                </thead>
+                {% for c in history %}
+                <tr>
+                    <td>{{c.real_time | ctime}}</td>
+                    <td>{{c.update_result.source_amount}} {{c.update_result.source_currency}}</td>
+                    <td>{{c.update_result.target_amount}} {{c.update_result.target_currency}}</td>
+                    <td>{{c.update_result.closed_initial_value}} €</td>
+                    <td>{{c.update_result.source_initial_value}} €</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div class="col-md-6"></div>
+
+    </div>
 </div>
 
 {% endblock %}

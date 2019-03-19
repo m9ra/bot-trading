@@ -38,12 +38,14 @@ Bootstrap(web_server)
 @web_server.route("/profile/<username>")
 def profile(username):
     portfolio_state = trading_server.get_portfolio_state(username)
-    return render_template("profile.html", username=username, portfolio_state=portfolio_state)
+    history = trading_server.load_transfer_history(username)
+    return render_template("profile.html", username=username, portfolio_state=portfolio_state, history=history)
 
 
 @web_server.route("/history")
 def history():
-    return render_template("history.html")
+    history = trading_server.load_transfer_history()
+    return render_template("history.html", history=history)
 
 
 @web_server.route("/results_table")
@@ -53,7 +55,7 @@ def results_table():
 
 
 @web_server.route("/")
-def dashboard():
+def index():
     endpoint = configuration.TRADING_ENDPOINT
     return render_template("index.html", exchange_name=EXCHANGE_NAME, endpoint=endpoint,
                            supported_pairs=supported_pairs)

@@ -13,6 +13,9 @@ class TransferCommand(object):
         self._min_target_amount = min_target_amount
 
     def apply(self, portfolio_state, market: Market):
+        if self._source_amount <= DUST_LEVEL:
+            raise PortfolioUpdateException(f"Requested source amount {self._source_amount} is too low.")
+
         target_amount = market.present.after_conversion(Fund(self._source_amount, self._source), self._target).amount
         if target_amount < self._min_target_amount:
             # the real target amount is not meeting the expectations
@@ -24,6 +27,7 @@ class TransferCommand(object):
         # subtract amount from source positions
         pending_amount = self._source_amount
         source_initial_value = market.get_value(self._source_amount, self._source).amount
+        closed_initial_value = 0.0
 
         # get required amount from source buckets
         for source_bucket in positions[self._source]:
@@ -33,6 +37,7 @@ class TransferCommand(object):
             partial_initial_value = max(0.0, diff / amount) * source_bucket["initial_value"]
             source_bucket["amount"] -= diff
             source_bucket["initial_value"] -= partial_initial_value
+            closed_initial_value += partial_initial_value
             pending_amount -= diff
             if pending_amount <= 0:
                 break
@@ -49,6 +54,16 @@ class TransferCommand(object):
         target_buckets.append({"amount": target_amount, "initial_value": source_initial_value})
 
         self._postprocess_buckets(positions, market)
+
+        return {
+            "source_currency": self._source,
+            "source_amount": self._source_amount,
+            "min_target_amount": self._min_target_amount,
+            "target_currency": self._target,
+            "target_amount": target_amount,
+            "source_initial_value": source_initial_value,
+            "closed_initial_value": closed_initial_value
+        }
 
     def __repr__(self):
         return f"Transfer {self._source_amount} {self._source} --> {self._min_target_amount} {self._target}"
