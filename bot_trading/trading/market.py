@@ -4,6 +4,7 @@ from bot_trading.core.data.parsing import parse_pair, make_pair
 from bot_trading.trading.connector_base import ConnectorBase
 from bot_trading.trading.currency_history import CurrencyHistory
 from bot_trading.trading.fund import Fund
+from bot_trading.trading.peek_connector import PeekConnector
 
 
 class Market(object):
@@ -42,6 +43,9 @@ class Market(object):
         return currency in self._currencies
 
     def get_history(self, seconds_back: float) -> CurrencyHistory:
+        if seconds_back < 0 and isinstance(self._connector, PeekConnector):
+            raise AssertionError("Can request only history (not future) for PeekConnector")
+
         history = CurrencyHistory(self, self._connector)
         history.set_time(self.current_time - seconds_back)
 

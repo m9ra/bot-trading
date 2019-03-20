@@ -1,6 +1,6 @@
 from typing import Dict
 
-from bot_trading.trading.transfer_command import TransferCommand
+from bot_trading.core.runtime.transfer_command import TransferCommand
 
 
 class PortfolioBase(object):

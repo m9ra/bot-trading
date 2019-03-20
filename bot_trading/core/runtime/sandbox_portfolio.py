@@ -4,7 +4,7 @@ from typing import Dict
 from bot_trading.core.exceptions import PortfolioUpdateException
 from bot_trading.core.messages import log_command
 from bot_trading.core.runtime.portfolio_base import PortfolioBase
-from bot_trading.trading.transfer_command import TransferCommand
+from bot_trading.core.runtime.transfer_command import TransferCommand
 
 
 class SandboxPortfolio(PortfolioBase):

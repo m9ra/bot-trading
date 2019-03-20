@@ -5,7 +5,7 @@ from bot_trading.trading.currency_history import CurrencyHistory
 from bot_trading.trading.currency_position import CurrencyPosition
 from bot_trading.trading.fund import Fund
 from bot_trading.trading.market import Market
-from bot_trading.trading.transfer_command import TransferCommand
+from bot_trading.core.runtime.transfer_command import TransferCommand
 
 
 class PortfolioController(object):
