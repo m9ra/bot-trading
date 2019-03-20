@@ -62,6 +62,9 @@ loadTable();
 
 
 function showGraph(slot, pair, odata){
+    if(document.visibilityState == "hidden") return;
+
+
     var data=[];
     var minY=null;
     var maxY=null;
@@ -103,7 +106,7 @@ function showGraph(slot, pair, odata){
 }
 
 function refreshGraphs(){
-
+    $(this).clearQueue();
     $.getJSON( "/pair_data/" + SLOT1_PAIR.replace("/","-"), function( json ) {
         showGraph("graph_slot1", json.pair, json.data);
         $.getJSON( "/pair_data/" + SLOT2_PAIR.replace("/","-"), function( json ) {
