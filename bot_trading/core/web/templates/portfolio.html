@@ -1,0 +1,16 @@
+<h2>Portfolio</h2>
+<h4>Value: {{portfolio_value|as_target}}</h4>
+
+{% for currency, info in funds.items() %}
+{% if info["amount"] > 0 %}
+
+<div class="portfolio_box {{ 'winning' if info['initial_value']<=info['current_value'] else 'loosing' }}">
+    <h4>Currency: <b>{{currency}}</b></h4>
+
+    <p> Amount: {{info["amount"] | as_amount }}</p>
+    <p> Initial value: {{ info["initial_value"] | as_target }}</p>
+    <p> Current value: {{ info["current_value"] | as_target }}</p>
+</div>
+
+{% endif %}
+{% endfor %}

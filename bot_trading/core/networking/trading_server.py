@@ -99,7 +99,7 @@ class TradingServer(object):
                 query = {}
 
             cursor = self._collection.transfers.find(query)
-            return list(cursor.sort("real_time", -1).limit(100))
+            return list(cursor.sort("real_time", -1).limit(100)), cursor.count()
 
     def is_user_online(self, username):
         return username in self._logged_clients
@@ -109,7 +109,7 @@ class TradingServer(object):
         if user_data is None:
             return None
 
-        return user_data["portfolio_state"]
+        return user_data["portfolio_state"], user_data["portfolio_value"]
 
     def run_server(self, port):
         Thread(target=self._accept_clients, args=[port], daemon=True).start()

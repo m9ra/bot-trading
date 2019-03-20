@@ -20,7 +20,7 @@
             {{r.username}}
         </div>
     </td>
-    <td>{{'%0.2f' % r.portfolio_value}} €</td>
+    <td>{{r.portfolio_value | as_target}}</td>
     <td>{{r.total_time}}</td>
     <td>{{r.accepted_command_count}}</td>
     <td>{{r.declined_command_count}}</td>

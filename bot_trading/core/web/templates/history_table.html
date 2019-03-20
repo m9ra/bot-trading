@@ -1,0 +1,35 @@
+<h2>Transfer History</h2>
+<h4>Transfer Count: {{transfer_count}}</h4>
+<table class="table table-hover">
+    <thead>
+    <tr>
+        {% if not username %}
+        <th scope="col">Username</th>
+        {% endif %}
+
+        <th scope="col">Time</th>
+        <th scope="col">Source</th>
+        <th scope="col">Target</th>
+        <th scope="col">Value Gain</th>
+    </tr>
+    </thead>
+    {% for c in history %}
+    {% set gain = c.update_result.source_initial_value - c.update_result.closed_initial_value %}
+    {% if gain > 0.00001 %}
+    {% set cls="winning" %}
+    {% endif %}
+
+    {% if gain < -0.00001 %}
+    {% set cls="loosing" %}
+    {% endif %}
+    <tr class="{{cls}}">
+        {% if not username %}
+        <td>{{c.username}}</td>
+        {% endif %}
+        <td>{{c.real_time | ctime}}</td>
+        <td>{{c.update_result.source_amount | as_amount}} {{c.update_result.source_currency}}</td>
+        <td>{{c.update_result.target_amount | as_amount}} {{c.update_result.target_currency}}</td>
+        <td>{{gain| as_target}}</td>
+    </tr>
+    {% endfor %}
+</table>
