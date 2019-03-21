@@ -20,3 +20,14 @@ class CurrencyPosition(object):
                 accumulator += amount
 
         return accumulator
+
+    def get_bucket_amounts_with(self, market, gain):
+        result = []
+        for bucket in self._buckets:
+            amount = bucket["amount"]
+            current_value = market.get_value(amount, self.currency)
+
+            if current_value.amount >= bucket["initial_value"] * gain:
+                result.append(amount)
+
+        return result

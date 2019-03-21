@@ -40,8 +40,14 @@ class CurrencyHistory(object):
     def get_unit_value(self, currency: str) -> float:
         return self.get_value(Fund(1.0, currency)).amount
 
+    def get_unit_cost(self, currency: str) -> float:
+        return self.get_cost(Fund(1.0, currency)).amount
+
     def get_value(self, fund: Fund) -> Fund:
         return self.after_conversion(fund, self._market.target_currency)
+
+    def get_cost(self, fund: Fund) -> Fund:
+        return self.to_convert(self._market.target_currency, fund)
 
     def after_conversion(self, fund: Fund, currency: str) -> Fund:
         path = self._market.get_transfer_path(fund.currency, currency)
@@ -52,3 +58,17 @@ class CurrencyHistory(object):
             current_fund = pricebook.after_conversion(current_fund)
 
         return current_fund
+
+    def to_convert(self, currency: str, fund: Fund) -> Fund:
+        path = self._market.get_transfer_path(fund.currency, currency)
+
+        current_fund = fund
+        for intermediate_currency in path[1:]:
+            pricebook = self.get_pricebook(current_fund.currency, intermediate_currency)
+            current_fund = pricebook.to_convert(current_fund)
+
+        return current_fund
+
+    def get_spread(self, currency: str) -> float:
+        pricebook = self.get_pricebook(currency, self._market.target_currency)
+        return pricebook.spread

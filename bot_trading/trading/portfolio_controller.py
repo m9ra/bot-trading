@@ -113,13 +113,13 @@ class PortfolioController(object):
                     result.append(Fund(position.total_amount, position.currency))
                 continue
 
-            profitable_amount = position.get_amount_with(self._market, gain_greater_than)
-            if profitable_amount > 0:
-                result.append(Fund(profitable_amount, position.currency))
+            for bucket_amount in position.get_bucket_amounts_with(self._market, gain_greater_than):
+                if bucket_amount > 0:
+                    result.append(Fund(bucket_amount, position.currency))
 
         return result
 
-    def get_fund_with(self, currency, gain_greater_than: float, force_include_target=True) -> Optional[Fund]:
+    def get_fund_with(self, currency, gain_greater_than: float = 1.0, force_include_target=True) -> Optional[Fund]:
         if currency == self.target_currency and force_include_target:
             return Fund(self._currency_positions[currency].total_amount, currency)
 

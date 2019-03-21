@@ -33,7 +33,7 @@ class TransferCommand(object):
         for source_bucket in positions[self._source]:
             amount = source_bucket["amount"]
             diff = min(amount, pending_amount)
-            if diff <= DUST_LEVEL:
+            if diff < DUST_LEVEL:
                 continue
 
             # calculate proportional value according to the amount subtracted
@@ -90,7 +90,7 @@ class TransferCommand(object):
                     else:
                         bucket["initial_value"] = 0  # keep initial value sane
 
-            position.sort(key=operator.itemgetter("initial_value"), reverse=False)
+            position.sort(key=self._get_bucket_priority, reverse=False)
             for i, bucket in reversed(list(enumerate(position))):
                 if i == 0:
                     # nothing to merge
@@ -100,3 +100,9 @@ class TransferCommand(object):
                     position[i - 1]["initial_value"] += bucket["initial_value"]
                     position[i - 1]["amount"] += bucket["amount"]
                     del position[i]
+
+    def _get_bucket_priority(self, bucket):
+        if bucket["amount"] < DUST_LEVEL:
+            return 0.0
+
+        return bucket["initial_value"] / bucket["amount"]

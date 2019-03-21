@@ -41,6 +41,10 @@ class PricebookProcessor(ProcessorBase):
         return list(reversed(levels))
 
     @property
+    def spread(self):
+        return max(0.0, min(self._sell_container) - max(self._buy_container))
+
+    @property
     def current_depth(self):
         return min(len(self._buy_container), len(self._sell_container))
 
