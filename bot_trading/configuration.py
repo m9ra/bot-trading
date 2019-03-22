@@ -8,10 +8,10 @@ TRADING_ENDPOINT = os.getenv("ENDPOINT", "packa2.cz:8697")
 # values NETWORK, CACHE, EXECUTOR, COMMAND, PORTFOLIO
 LOG_LEVELS = {
     # "NETWORK",
-    # "CACHE",
-    # "EXECUTOR",
+    "CACHE",
+    "EXECUTOR",
     "COMMAND",
-    # "PORTFOLIO"
+    "PORTFOLIO"
 }
 
 USERNAME = "!!!YOUR EMAIL BELONGS HERE!!!"  # FILL IN YOUR EMAIL ADDRESS email@is.username
