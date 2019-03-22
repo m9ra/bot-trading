@@ -1,7 +1,9 @@
 import base64
+import json
 import socket
 import time
 import traceback
+from collections import defaultdict
 from copy import deepcopy
 from threading import Thread, RLock
 from typing import List, Dict
@@ -15,8 +17,9 @@ from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.networking.socket_client import SocketClient
+from bot_trading.core.networking.user import User
 from bot_trading.core.processors.pricebook_processor import PricebookProcessor
-from bot_trading.core.runtime.execution import get_initial_portfolio_state
+from bot_trading.core.runtime.execution import get_initial_portfolio_state, WRITE_MODE
 from bot_trading.core.runtime.validation import validate_email
 from bot_trading.trading.market import Market
 from bot_trading.trading.peek_connector import PeekConnector
@@ -37,7 +40,9 @@ class TradingServer(object):
         # self._collection.transfsers.drop()
         # self._collection.portfolio_values.drop()
 
-        self._logged_clients: Dict[str, SocketClient] = {}
+        self._active_users: Dict[str, User] = {}
+
+        self._read_only_clients: Dict[str, List[SocketClient]] = defaultdict(List)
         self._L_clients = RLock()
         self._storages = {}
         self._last_time_check = time.time()
@@ -78,7 +83,7 @@ class TradingServer(object):
             return list(cursor.sort("real_time", -1).limit(100)), cursor.count()
 
     def is_user_online(self, username):
-        return username in self._logged_clients
+        return username in self._active_users and self._active_users[username].is_online
 
     def get_portfolio_state(self, username):
         user_data = self._get_user_data(username)
@@ -111,15 +116,19 @@ class TradingServer(object):
             return None
 
         username = login_message["username"]
+        access_mode = login_message["access_mode"]
         client.username = username
+        client.is_readonly = access_mode != WRITE_MODE
 
         validate_email(username)
         return username.split("@")[0]
 
     def _login(self, username: str, client: SocketClient):
         with self._L_clients:
-            self._logout(username)  # logout possible previous client
-            self._logged_clients[username] = client
+            if username not in self._active_users:
+                self._active_users[username] = User(username)
+
+            self._active_users[username].accept(client)
 
             with self._L_collection:
                 self._ensure_default(username, "accepted_command_count", 0)
@@ -130,12 +139,6 @@ class TradingServer(object):
 
             print(f"logged in: {username}")
 
-    def _logout(self, username: str):
-        with self._L_clients:
-            client = self._logged_clients.pop(username, None)
-            if client:
-                print(f"Logout: {username}")
-                client.disconnect()
 
     def _update_statistics(self):
         i = 0
@@ -188,9 +191,6 @@ class TradingServer(object):
                                           {"$set": {field: value}})
 
     def _feed_handler(self, first_entry_index: int, entries: List[TradeEntry]):
-        if not self._logged_clients:
-            return  # no clients == nothing to do
-
         pair = entries[0].pair
 
         chunk = []
@@ -201,19 +201,15 @@ class TradingServer(object):
             chunk.extend(TradeEntry.to_chunk(entry))
 
         base64_chunk = self._encode_chunk(chunk)
-        clients = list(self._logged_clients.values())
-        for client in clients:
-            self._send_entries_chunk(client, pair, first_entry_index, base64_chunk)
+        data_str = json.dumps({
+            "f": pair,
+            "i": first_entry_index,
+            "c": base64_chunk
+        })
 
-    def _send_entries_chunk(self, socket_client: SocketClient, pair: str, first_entry_index: int, base64_chunk):
-        try:
-            socket_client.send_json({
-                "f": pair,
-                "i": first_entry_index,
-                "c": base64_chunk
-            })
-        except:
-            print(f"Client feed failed: {socket_client.username}")
+        users = list(self._active_users.values())
+        for user in users:
+            user.broadcast(data_str)
 
     def _handle_client(self, socket, addr):
         socket.setblocking(False)
@@ -271,6 +267,9 @@ class TradingServer(object):
                     response["portfolio_state"] = user_data["portfolio_state"]
 
                 elif c == "update_portfolio_state":
+                    if client.is_readonly:
+                        raise AssertionError(f"readonly {username} client attempted to update portfolio")
+
                     update_command = jsonpickle.loads(command["update_command"])
                     with self._L_collection:
                         user_data = self._get_user_data(username)
@@ -320,9 +319,7 @@ class TradingServer(object):
         finally:
             if username:
                 with self._L_clients:
-                    if self._logged_clients.get(username) == client:
-                        # if this socket client is still logged, log it out
-                        self._logout(username)
+                    self._active_users[username].remove(client)
 
             print(f"Client disconnected: {username}")
 

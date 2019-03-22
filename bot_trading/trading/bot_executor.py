@@ -39,9 +39,12 @@ class BotExecutor(object):
         if self._bot_slack > 0:
             return  # bot can't trade (its in time slack or not enough info was collected yet)
 
-        if not self._is_synchronized and self._market.get_history(0).is_available:
+        if not self._is_synchronized and self._market.present.is_available:
             # once the present is available, the executor got synchronized
             self._is_synchronized = True
+
+        if not self._is_synchronized:
+            return
 
         if self._current_time - self._last_bot_update >= self._bot.update_interval:
             self._consult_bot()

@@ -1,4 +1,5 @@
-from bot_trading.configuration import TRADING_ENDPOINT, BOOK_DEPTH
+from bot_trading.configuration import TRADING_ENDPOINT
+from bot_trading.core.configuration import BOOK_DEPTH
 from bot_trading.core.networking.remote_observer import RemoteObserver
 from bot_trading.core.processors.pricebook_processor import PricebookProcessor
 from bot_trading.trading.utils import timestamp_to_datetime

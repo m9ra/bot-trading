@@ -27,23 +27,25 @@ class RemoteObserver(object):
         self._current_command_id = 0
         self._command_events: Dict[int, Event] = {}
         self._command_results: Dict[int, Any] = {}
+        self.shutdown = False
 
     def get_reader(self, pair):
         return self._readers.get(pair)
 
-    def connect(self):
-        self._client = self._create_client()
+    def connect(self, mode):
+        self._raw_connect(mode)
+
+        Thread(target=self._client_reader, args=[], daemon=True).start()
+
+    def _raw_connect(self, mode):
+        self._client = self._create_client(mode)
         welcome_message = self._client.read_json()
         pairs_info = welcome_message["pairs_info"]
         self._pairs = list(pairs_info.keys())
-
         readers = {}
         for pair, info in pairs_info.items():
             readers[pair] = RemoteEntryReader(pair, info["entry_count"], self)
-
         self._readers = readers
-
-        Thread(target=self._client_reader, args=[], daemon=True).start()
 
     def get_readers(self):
         print("Storage synchronization...")
@@ -129,6 +131,15 @@ class RemoteObserver(object):
                 id = message["id"]
                 self._command_results[id] = message
                 self._command_events[id].set()
+            elif "system" in message:
+                system_command = message["system"]
+                if system_command == "shutdown":
+                    print("shutdown command received")
+                    self.shutdown = True
+                    self._client.disconnect()
+                    break
+                else:
+                    raise AssertionError(f"Unknown system command {message}")
 
             else:
                 raise AssertionError(f"Unknown message {message}")
@@ -148,13 +159,14 @@ class RemoteObserver(object):
         print("\t interrupt main")
         _thread.interrupt_main()
 
-    def _create_client(self):
+    def _create_client(self, access_mode):
         client = SocketClient()
         host, port = self._remote_endpoint.split(":")
         client.connect(host, int(port))
         client.send_json({
             "username": self._username,
             "password": self._password,
+            "access_mode": access_mode
         })
         return client
 

@@ -14,6 +14,10 @@ class SocketClient(object):
         self._socket = socket
         self._is_connected = socket is not None
 
+        # trading project specific fields
+        self.username: str = None
+        self.is_readonly: bool = None
+
     @property
     def is_connected(self):
         return self._is_connected

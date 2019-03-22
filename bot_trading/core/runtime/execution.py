@@ -17,6 +17,9 @@ from bot_trading.trading.portfolio_controller import PortfolioController
 HISTORY_MODE = "history"
 PEEK_MODE = "peek"
 
+WRITE_MODE = "write"
+READ_MODE = "read"
+
 
 def get_username():
     from bot_trading.configuration import USERNAME
@@ -26,14 +29,14 @@ def get_username():
 
 
 def run_sandbox_trades(bot: BotBase):
-    market, _ = create_trading_env(PEEK_MODE)
+    market, _ = create_trading_env(PEEK_MODE, READ_MODE)
     portfolio = SandboxPortfolio(market, get_initial_portfolio_state())
     run_on_market(market, bot, portfolio)
 
 
 def run_sandbox_backtest(bot: BotBase, start_hours_ago=None, run_duration_hours=None,
                          start_timestamp=None, end_timestamp=None):
-    market, _ = create_trading_env(HISTORY_MODE)
+    market, _ = create_trading_env(HISTORY_MODE, READ_MODE)
 
     if start_timestamp and start_hours_ago:
         raise ValueError("Only one of start_timestamp and start_hours_ago can be specified")
@@ -59,7 +62,7 @@ def run_sandbox_backtest(bot: BotBase, start_hours_ago=None, run_duration_hours=
 
 
 def run_real_trades(bot: BotBase):
-    market, observer = create_trading_env(PEEK_MODE)
+    market, observer = create_trading_env(PEEK_MODE, WRITE_MODE)
     portfolio = RemotePortfolio(observer)
     run_on_market(market, bot, portfolio)
 
@@ -88,7 +91,7 @@ def get_initial_portfolio_state():
     }
 
 
-def create_trading_env(connector_mode):
+def create_trading_env(connector_mode, access_mode):
     from bot_trading.configuration import TRADING_ENDPOINT
 
     username = get_username()
@@ -97,8 +100,12 @@ def create_trading_env(connector_mode):
     if connector_mode not in [HISTORY_MODE, PEEK_MODE]:
         raise ValueError(f"Invalid connector mode {connector_mode}")
 
+    if access_mode not in [READ_MODE, WRITE_MODE]:
+        raise ValueError(f"Invalid access mode {access_mode}")
+
+    print(f"CONNECTING TO {TRADING_ENDPOINT}")
     observer = RemoteObserver(TRADING_ENDPOINT, username, "no_password_yet")
-    observer.connect()
+    observer.connect(access_mode)
 
     readers = observer.get_readers()
     market_pairs = observer.get_pairs()
