@@ -14,9 +14,12 @@
                 <h1>Market: <b>{{exchange_name}}</b></h1>
                 <h4><b>{{endpoint}}</b></h4>
             </div>
-
-            <table id="results_table" class="table table-hover">
-            </table>
+            <div>
+                <div id="bid_asks"></div>
+            </div>
+            <div style="clear:both">
+                <table id="results_table" class="table table-hover"></table>
+            </div>
         </div>
         <div class="col-md-7">
             <div id="graph_slot1"></div>
@@ -56,66 +59,30 @@ function loadTable(){
         });
  });
 }
-
 loadTable();
 
 
-
-function showGraph(slot, pair, odata){
-    if(document.visibilityState == "hidden") return;
-
-
-    var data=[];
-    var minY=null;
-    var maxY=null;
-    for(var i in odata){
-        o = odata[i];
-        data.push({
-            date: new Date(o["d"]*1000),
-            u: o["u"],
-            l: o["l"],
-            value: (o["u"] + o["l"])/2
-        })
-
-        if(minY==null || minY>o["l"])
-            minY=o["l"];
-
-        if(maxY==null || maxY<o["u"])
-            maxY=o["u"];
-    }
-    //data = MG.convert.date(artif_data, 'date');
-
-
-
-    MG.data_graphic({
-        title: pair + " spread history",
-        data: data,
-        full_width:true,
-        height: 400,
-        right: 40,
-        area: false,
-        target: '#' + slot,
-        show_secondary_x_label: false,
-        show_confidence_band: ['l', 'u'],
-        x_extended_ticks: true,
-        min_y_from_data: true,
-        max_y:maxY,
-        min_y:minY,
-        transition_on_update:false
-    });
+function loadBidAsks(){
+ $('#bid_asks').load('/bid_asks', function(){
+        setTimeout(loadBidAsks, 1000);
+ });
 }
+loadBidAsks();
+
 
 function refreshGraphs(){
     $(this).clearQueue();
     $.getJSON( "/pair_data/" + SLOT1_PAIR.replace("/","-"), function( json ) {
-        showGraph("graph_slot1", json.pair, json.data);
+        showGraph("graph_slot1", json);
         $.getJSON( "/pair_data/" + SLOT2_PAIR.replace("/","-"), function( json ) {
-            setTimeout(refreshGraphs, 2000);
-            showGraph("graph_slot2", json.pair, json.data);
+            setTimeout(refreshGraphs, 10000);
+            showGraph("graph_slot2", json);
         })
     });
 }
 refreshGraphs();
+
+
 
 
 

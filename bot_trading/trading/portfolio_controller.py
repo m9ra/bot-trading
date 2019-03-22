@@ -34,6 +34,12 @@ class PortfolioController(object):
         return self._market.currencies
 
     @property
+    def non_target_currencies(self) -> List[str]:
+        currencies = list(self._market.currencies)
+        currencies.remove(self.target_currency)
+        return currencies
+
+    @property
     def pairs(self):
         return self._market.direct_currency_pairs
 
@@ -119,7 +125,7 @@ class PortfolioController(object):
 
         return result
 
-    def get_fund_with(self, currency, gain_greater_than: float = 1.0, force_include_target=True) -> Optional[Fund]:
+    def get_fund_with(self, currency, gain_greater_than: float, force_include_target=True) -> Optional[Fund]:
         if currency == self.target_currency and force_include_target:
             return Fund(self._currency_positions[currency].total_amount, currency)
 
@@ -128,6 +134,17 @@ class PortfolioController(object):
             return Fund(profitable_amount, currency)
 
         return None
+
+    def get_funds(self, currency):
+        result = []
+        for amount in self._currency_positions[currency].get_bucket_amounts():
+            result.append(Fund(amount, currency))
+
+        return result
+
+    def can_sell(self, amount, currency):
+        available_amount = sum(f.amount for f in self.get_funds(currency))
+        return available_amount > amount
 
     def print_pricebook_info(self, source_currency, target_currency):
         pricebook = self.present.get_pricebook(source_currency, target_currency)

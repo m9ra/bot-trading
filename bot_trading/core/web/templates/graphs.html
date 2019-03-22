@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}Currency Pair Graphs{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid" style="margin-left:20px">
+    <div class="row">
+        <div class="col-md-12">
+            {% for pair in supported_pairs %}
+            <div id="graph_slot_{{pair.replace('/','-')}}"></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+
+var PAIRS = {{supported_pairs | safe}};
+
+function refreshGraphs(){
+    $(this).clearQueue();
+    for(var pair of PAIRS){
+        $.getJSON( "/pair_data/" + pair.replace("/","-"), function( json ) {
+            var slot = "graph_slot_" + json.pair.replace("/","-");
+            showGraph(slot, json);
+        });
+    }
+
+    setTimeout(refreshGraphs, 10000);
+}
+refreshGraphs();
+
+
+
+</script>
+
+{% endblock %}

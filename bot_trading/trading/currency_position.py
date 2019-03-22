@@ -31,3 +31,12 @@ class CurrencyPosition(object):
                 result.append(amount)
 
         return result
+
+    def get_bucket_amounts(self):
+        result = []
+        for bucket in self._buckets:
+            amount = bucket["amount"]
+            if amount > 0:
+                result.append(amount)
+
+        return result

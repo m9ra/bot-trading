@@ -6,6 +6,7 @@ from flask import jsonify, request, flash
 from bot_trading.bots.bot_base import BotBase
 from bot_trading.core.data.parsing import parse_pair
 from bot_trading.core.messages import log_command
+from bot_trading.core.runtime.execution import get_username
 from bot_trading.trading.fund import Fund
 from bot_trading.trading.portfolio_controller import PortfolioController
 
@@ -89,7 +90,9 @@ class ManualBot(BotBase):
         def _interface_index():
             return render_template("index.html",
                                    supported_currencies=supported_currencies,
-                                   direct_pairs=direct_pairs)
+                                   direct_pairs=direct_pairs,
+                                   username=get_username()
+                                   )
 
         @server.route("/interface_state")
         def _interface_state():

@@ -18,3 +18,6 @@ TRACKED_PAIRS = ["ADA/CAD", "ADA/ETH", "ADA/EUR", "ADA/USD", "ADA/XBT", "BCH/EUR
 
 DUST_LEVEL = 1e-9  # amounts below this will be considered dust and converted to zero
 MIN_POSITION_BUCKET_VALUE = 1.0  # if the position bucket value is lower, it will get merged to other bucket
+
+INITIAL_AMOUNT = 1000.0
+TARGET_CURRENCY = "EUR"

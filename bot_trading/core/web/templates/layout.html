@@ -6,7 +6,7 @@
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 {% endblock %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 
 <link rel="stylesheet" type="text/css"
       href="https://cdnjs.cloudflare.com/ajax/libs/metrics-graphics/2.15.6/metricsgraphics.css">
@@ -17,9 +17,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.9.2/d3.js"></script>
-<script type="text/javascript"
-        src="https://cdnjs.cloudflare.com/ajax/libs/metrics-graphics/2.15.6/metricsgraphics.js"></script>
-<script src="{{ url_for('static', filename='board.js') }}"></script>
+<script src="{{ url_for('static', filename='graph.js') }}"></script>
+<script src="{{ url_for('static', filename='metricsgraphics.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 
 <script>
 $(document).ready(function($) {
@@ -27,6 +28,7 @@ $(document).ready(function($) {
         window.location = $(this).data("href");
     });
 });
+
 
 
 </script>
@@ -53,6 +55,10 @@ $(document).ready(function($) {
                 "index" %} class='active' {% endif %}><a href="/">Leaderboard</a></li>
                 <li {% if request.endpoint==
                 "history" %} class='active' {% endif %}><a href="/history">Transfer History</a></li>
+                <li {% if request.endpoint==
+                "graphs" %} class='active' {% endif %}><a href="/graphs">Currency Pair Graphs</a></li>
+                <li {% if request.endpoint==
+                "portfolio_values" %} class='active' {% endif %}><a href="/portfolio_values">Portfolio Values</a></li>
             </ul>
         </div><!--/.nav-collapse -->
     </div><!--/.container-fluid -->

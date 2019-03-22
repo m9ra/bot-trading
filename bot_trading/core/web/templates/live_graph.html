@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block title %} {{pair}} Live Graph{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="margin-left:20px">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Live Graph for {{pair}}</h1>
+            <a href="https://trade.kraken.com/markets/kraken/{{pair}}">Open detailed Kraken chart</a>
+            <div id="graph_slot"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+var PAIR = "{{pair}}";
+
+function refreshGraph(){
+    $(this).clearQueue();
+    $.getJSON("/pair_data/" + PAIR.replace("/","-"), function( json ) {
+        showGraph("graph_slot", json);
+        setTimeout(refreshGraphs, 10000);
+    });
+}
+refreshGraph();
+
+
+</script>
+{% endblock %}

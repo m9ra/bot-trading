@@ -1,0 +1,7 @@
+    {% for currency, b, a in bid_asks %}
+    <div class="price_box">
+        <p><b>1.0 {{currency}}</b></p>
+        <p>Buy for: {{b | as_target}} </p>
+        <p>Sell for: {{a | as_target}} </p>
+    </div>
+    {% endfor %}

@@ -46,11 +46,11 @@ class RemoteObserver(object):
         Thread(target=self._client_reader, args=[], daemon=True).start()
 
     def get_readers(self):
-        print("Waiting for storage synchronization")
+        print("Storage synchronization...")
         while self._readers is None:
             time.sleep(0.1)  # wait until storages are synchronized
 
-        print("Synchronized")
+        print("\t complete")
 
         return self._readers.values()
 

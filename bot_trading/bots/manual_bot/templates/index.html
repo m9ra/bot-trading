@@ -43,7 +43,7 @@
 </script>
 {% endblock %}
 
-{% block title %}Manual Bot Interface{% endblock %}
+{% block title %}Manual Bot Interface - {{username}}{% endblock %}
 
 {% block navbar %}
 
@@ -73,6 +73,7 @@
 <div class="container-fluid" style="margin:10px">
     <div class="row">
         <font id="sync_notification" color="red">interface is connecting....</font>
+        <h1>{{username}}</h1>
         <h2>Portfolio <span class="live-portfolio-value">?</span> EUR </h2>
         <p>Market time: <span class="live-time">?</span></p>
         <p>Timestamp: <span class="live-timestamp">?</span></p>
@@ -211,8 +212,8 @@ function refreshInterface(){
         for(var currency in json["funds"]){
            var info = json["funds"][currency];
            $(".live-fund-amount-" + currency).text(roundValue(info["amount"],5));
-           $(".live-fund-initial-value-" + currency).text(roundValue(info["initial_value"],2));
-           $(".live-fund-value-" + currency).text(roundValue(info["current_value"],2));
+           $(".live-fund-initial-value-" + currency).text(roundValue(info["initial_value"],4));
+           $(".live-fund-value-" + currency).text(roundValue(info["current_value"],4));
 
            var specifier = ".live-fund-" + currency;
            if(info["amount"] <= 0){
@@ -235,8 +236,8 @@ function refreshInterface(){
             var sell = info["s"];
             var p = pair.split("/");
             var suffix = p[0] + "-" + p[1];
-            $(".live-price-buy-" + suffix).text(roundValue(buy, 2));
-            $(".live-price-sell-" + suffix).text(roundValue(sell, 2));
+            $(".live-price-buy-" + suffix).text(roundValue(buy, 4));
+            $(".live-price-sell-" + suffix).text(roundValue(sell, 4));
         }
     })
     .complete(function(){

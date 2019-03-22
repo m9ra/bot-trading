@@ -40,7 +40,7 @@ class StorageWriter(object):
 
             i += 1
 
-        i -= 1  # go to previous storage index which should existed
+        i -= 1  # go to previous storage index which should exist
         if i < 0:
             # unless no storage exists
             return 0
@@ -48,7 +48,10 @@ class StorageWriter(object):
         path = self.get_storage_path(self._pair, i)
         size = os.path.getsize(path)
         if size % TradeEntry.chunk_size != 0:
-            raise AssertionError(f"Invalid alignment detected for {path}")
+            with open(path, "w") as f:
+                f.truncate(int(size / TradeEntry.chunk_size) * TradeEntry.chunk_size)
+                raise AssertionError(f"Invalid alignment detected for {path}")
+
 
         return i * self.file_entry_count + int(size / TradeEntry.chunk_size)
 

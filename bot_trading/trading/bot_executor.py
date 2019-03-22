@@ -53,7 +53,6 @@ class BotExecutor(object):
         start = time.time()
         portfolio = PortfolioController(self._market, self._portfolio.get_state_copy())
         log_portfolio(portfolio)
-        value_before = portfolio.total_value
         portfolio_before = str(portfolio)
         self._bot.update_portfolio(portfolio)
         end = time.time()
@@ -64,14 +63,13 @@ class BotExecutor(object):
         if not portfolio._commands:
             return
 
-        log_command(f"Portfolio value before: {value_before} | {portfolio_before}")
+        log_command(f"Portfolio before: {portfolio_before}")
         for command in portfolio._commands:
             log_command(f"\t {command}")
             self._portfolio.execute(command)
 
         portfolio._load_from_state(self._portfolio.get_state_copy())
-        after_value = portfolio.total_value
-        log_command(f"Portfolio value after: {after_value} | {portfolio}\n")
+        log_command(f"Portfolio after: {portfolio}\n")
 
     def _update_slack(self, new_time):
         # sync time with the bot execution delay

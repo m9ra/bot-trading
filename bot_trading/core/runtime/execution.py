@@ -1,8 +1,9 @@
+import os
 import sys
 import time
 
 from bot_trading.bots.bot_base import BotBase
-from bot_trading.configuration import TARGET_CURRENCY, TRADING_ENDPOINT, INITIAL_AMOUNT
+from bot_trading.core.configuration import INITIAL_AMOUNT, TARGET_CURRENCY
 from bot_trading.core.networking.remote_observer import RemoteObserver
 from bot_trading.core.runtime.remote_portfolio import RemotePortfolio
 from bot_trading.core.runtime.sandbox_portfolio import SandboxPortfolio
@@ -11,30 +12,54 @@ from bot_trading.trading.bot_executor import BotExecutor
 from bot_trading.trading.fullpass_connector import FullpassConnector
 from bot_trading.trading.market import Market
 from bot_trading.trading.peek_connector import PeekConnector
+from bot_trading.trading.portfolio_controller import PortfolioController
 
 HISTORY_MODE = "history"
 PEEK_MODE = "peek"
 
 
+def get_username():
+    from bot_trading.configuration import USERNAME
+    username = os.getenv("USERNAME", USERNAME)
+
+    return username
+
+
 def run_sandbox_trades(bot: BotBase):
-    if len(sys.argv) != 3:
-        raise ValueError(f"Expecting command arguments: [username@is.email] [{HISTORY_MODE}|{PEEK_MODE}]")
+    market, _ = create_trading_env(PEEK_MODE)
+    portfolio = SandboxPortfolio(market, get_initial_portfolio_state())
+    run_on_market(market, bot, portfolio)
 
-    username = sys.argv[1]
-    connector_mode = sys.argv[2]
 
-    market, _ = create_trading_env(connector_mode, username)
+def run_sandbox_backtest(bot: BotBase, start_hours_ago=None, run_duration_hours=None,
+                         start_timestamp=None, end_timestamp=None):
+    market, _ = create_trading_env(HISTORY_MODE)
+
+    if start_timestamp and start_hours_ago:
+        raise ValueError("Only one of start_timestamp and start_hours_ago can be specified")
+
+    if end_timestamp and run_duration_hours:
+        raise ValueError("Only one of end_timestamp and run_duration_hours can be specified")
+
+    if start_hours_ago != None:
+        start_timestamp = time.time() - start_hours_ago * 3600
+
+    if start_timestamp:
+        market._connector.set_run_start(start_timestamp)
+
+    if run_duration_hours:
+        start = market._connector.get_start_timestamp()
+        end_timestamp = start + run_duration_hours * 3600
+
+    if end_timestamp:
+        market._connector.set_run_end(end_timestamp)
+
     portfolio = SandboxPortfolio(market, get_initial_portfolio_state())
     run_on_market(market, bot, portfolio)
 
 
 def run_real_trades(bot: BotBase):
-    if len(sys.argv) != 2:
-        raise ValueError(f"Expecting command arguments: [username@is.email]")
-
-    username = sys.argv[1]
-
-    market, observer = create_trading_env(PEEK_MODE, username)
+    market, observer = create_trading_env(PEEK_MODE)
     portfolio = RemotePortfolio(observer)
     run_on_market(market, bot, portfolio)
 
@@ -45,6 +70,8 @@ def run_on_market(market, bot, portfolio):
     executor.run()
     end = time.time()
     print()
+    portfolio = PortfolioController(market, portfolio.get_state_copy())
+    print(f"FINAL PORTFOLIO: {portfolio}")
     print(f"EXECUTION WALLTIME: {end - start} seconds")
 
 
@@ -61,11 +88,14 @@ def get_initial_portfolio_state():
     }
 
 
-def create_trading_env(connector_mode, username):
+def create_trading_env(connector_mode):
+    from bot_trading.configuration import TRADING_ENDPOINT
+
+    username = get_username()
+    validate_email(username)
+
     if connector_mode not in [HISTORY_MODE, PEEK_MODE]:
         raise ValueError(f"Invalid connector mode {connector_mode}")
-
-    validate_email(username)
 
     observer = RemoteObserver(TRADING_ENDPOINT, username, "no_password_yet")
     observer.connect()

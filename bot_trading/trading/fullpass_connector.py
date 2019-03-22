@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import List
 
 from bot_trading.core.data.entry_reader_base import EntryReaderBase
+from bot_trading.core.data.parsing import parse_pair
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.trading.connector_base import ConnectorBase
 
@@ -14,6 +15,22 @@ class FullpassConnector(ConnectorBase):
         self._reader_limits = {}
         for reader in entry_readers:
             self._reader_limits[reader] = reader.get_entry_count()
+
+    def set_run_start(self, timestamp):
+        for reader in self._readers:
+            self._reader_peeks[reader] = reader.find_pricebook_start(timestamp)
+
+    def get_start_timestamp(self):
+        timestamp = float("inf")
+        for reader in self._readers:
+            timestamp = min(timestamp, reader.get_entry(self._reader_peeks[reader]).timestamp)
+
+        return timestamp
+
+    def set_run_end(self, end_timestamp):
+        for reader in self._readers:
+            pricebook = self.get_pricebook(*parse_pair(reader.pair), end_timestamp)
+            self._reader_limits[reader] = pricebook._current_index
 
     def blocking_get_next_entry(self) -> TradeEntry:
         best_reader = None

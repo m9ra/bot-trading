@@ -9,7 +9,8 @@ from typing import List, Dict
 import jsonpickle
 from pymongo import MongoClient
 
-from bot_trading.configuration import TARGET_CURRENCY, INITIAL_AMOUNT
+from bot_trading.core.configuration import TARGET_CURRENCY, INITIAL_AMOUNT
+from bot_trading.core.data.parsing import parse_pair
 from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
@@ -33,6 +34,8 @@ class TradingServer(object):
 
         self._collection = _db[name]
         # self._collection.users.drop()
+        # self._collection.transfsers.drop()
+        # self._collection.portfolio_values.drop()
 
         self._logged_clients: Dict[str, SocketClient] = {}
         self._L_clients = RLock()
@@ -47,45 +50,18 @@ class TradingServer(object):
         self._market = Market(TARGET_CURRENCY, list(self._storages.keys()), connector)
 
         Thread(target=self._run_market, daemon=True).start()
+        print("Market synchronization")
+        while not self._market.present.is_available:
+            time.sleep(0.1)
+        print("\t complete")
 
     @property
     def currencies(self):
         return list(self._storages.keys())
 
-    def get_history(self, currency, item_count):
-        selected_pair = None
-        for pair in self._storages.keys():
-            if currency in pair:
-                selected_pair = pair
-
-        if selected_pair is None:
-            return [], [], [], None
-
-        storage = self._storages[selected_pair]
-        last_entry_index = storage.get_entry_count()
-        first_entry_index = max(0, last_entry_index - item_count)
-        first_bucket_start = int(
-            first_entry_index / StorageWriter.bucket_entry_count) * StorageWriter.bucket_entry_count
-
-        processor = PricebookProcessor(selected_pair)
-        asks = []
-        bids = []
-        timestamps = []
-        for i in range(first_bucket_start, last_entry_index):
-            entry = storage.get_entry(i)
-            processor.accept(entry)
-            if i >= first_entry_index and processor.is_ready:
-                sl = processor.sell_levels
-                bl = processor.buy_levels
-
-                if not sl or not bl:
-                    continue
-
-                asks.append(sl[-1][0])
-                bids.append(bl[-1][0])
-                timestamps.append(processor.current_time)
-
-        return asks, timestamps, bids, selected_pair
+    def load_portfolio_values(self):
+        cursor = self._collection.portfolio_values.find({})
+        return cursor.sort("timestamp", -1).limit(1000)
 
     def load_accounts(self):
         with self._L_collection:
@@ -110,6 +86,19 @@ class TradingServer(object):
             return None
 
         return user_data["portfolio_state"], user_data["portfolio_value"]
+
+    def get_bid_asks(self):
+        result = []
+        present = self._market.present
+        for pair in self._market.direct_currency_pairs:
+            sc, tc = parse_pair(pair)
+            if tc != self._market.target_currency:
+                continue
+
+            pb = present.get_pricebook(sc, tc)
+            result.append([sc] + pb.bid_ask)
+
+        return result
 
     def run_server(self, port):
         Thread(target=self._accept_clients, args=[port], daemon=True).start()
@@ -149,22 +138,28 @@ class TradingServer(object):
                 client.disconnect()
 
     def _update_statistics(self):
+        i = 0
         while True:
-            # todo calculate portfolio value
-
+            i += 1
             current_time = time.time()
             extra_time = current_time - self._last_time_check
             self._last_time_check = current_time
 
+            values = []
             with self._L_collection:
                 for user_data in self._collection.users.find({}):
                     username = user_data["_id"]
                     # calculate current value
-                    portfolio = PortfolioController(self._market, user_data["portfolio_state"])
+                    try:
+                        portfolio = PortfolioController(self._market, user_data["portfolio_state"])
+                        value = portfolio.total_value.amount
+                    except:
+                        traceback.print_exc()
+                        continue
 
                     update = {
                         "$set": {
-                            "portfolio_value": portfolio.total_value.amount
+                            "portfolio_value": value
                         }
                     }
 
@@ -173,6 +168,14 @@ class TradingServer(object):
 
                     # update time and value
                     self._collection.users.update({"_id": username}, update)
+                    values.append((username, value))
+
+            if i % 10 == 0:
+                # log portfolio values
+                self._collection.portfolio_values.insert({
+                    "timestamp": time.time(),
+                    "portfolio_values": values
+                })
 
             time.sleep(1)
 

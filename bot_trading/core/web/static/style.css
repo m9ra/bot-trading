@@ -1,9 +1,25 @@
+
+.price_box{
+    float:left;
+    margin-right: 5px;
+    padding: 5px;
+    background-color: aliceblue;
+}
+
 .winning{
-    background-color: lightgreen;
+    background-color: lightgreen!important;
 }
 
 .loosing{
-    background-color: lightcoral;
+    background-color: lightcoral!important;
+}
+
+.head{
+    margin-top: -20px;
+}
+
+.head h1{
+    font-size: 25px;
 }
 
 .portfolio_box {
@@ -19,6 +35,30 @@
 
 .mg-header {
     transform: translate(0,60px);
+}
+
+.mg-markers text{
+    font-size: 15px;
+}
+
+.mg-markers .buy{
+    fill: red;
+}
+
+.mg-markers .sell{
+    fill: green;
+}
+
+.mg-markers line{
+    stroke-width: 2px;
+}
+
+.mg-markers line.buy{
+    stroke: red;
+}
+
+.mg-markers line.sell{
+    stroke: green;
 }
 
 #graph_slot1 {

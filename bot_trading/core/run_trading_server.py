@@ -1,21 +1,26 @@
 import datetime
 import json
+import os
 import sys
+from collections import defaultdict
 
 from flask import Flask, render_template, request
 from flask_bootstrap import Bootstrap
 
-from bot_trading import configuration
+from bot_trading.core.configuration import TARGET_CURRENCY
+from bot_trading.core.data.parsing import make_pair
+
+os.environ["USERNAME"] = "system@email.cz"
+
 from bot_trading.configuration import TRADING_ENDPOINT
 from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.networking.trading_server import TradingServer
 from bot_trading.core.web.history_cache import HistoryCache
 from bot_trading.core.web.score_record import ScoreRecord
-from bot_trading.trading.fund import Fund
 
 EXCHANGE_NAME = sys.argv[1]
 
-supported_pairs = ["XRP/EUR", "XMR/EUR", "ETH/EUR", "REP/EUR"]
+supported_pairs = ["XRP/EUR", "XMR/EUR", "ETH/EUR", "REP/EUR", "XBT/EUR", "XLM/EUR"]
 history_cache = {}
 readers = []
 print("Preparing readers")
@@ -23,7 +28,7 @@ for pair in supported_pairs:
     print(f"\t {pair}")
     storage = StorageReader(pair)
     readers.append(storage)
-    history_cache[pair] = HistoryCache(storage, 5000, 3600)
+    history_cache[pair] = HistoryCache(storage, 10.0, 5 * 3600)
     history_cache[pair].get_data()
 
 print("readers are ready")
@@ -44,6 +49,21 @@ def profile(username):
 @web_server.route("/history")
 def history():
     return render_template("history.html")
+
+
+@web_server.route("/portfolio_values")
+def portfolio_values():
+    return render_template("portfolio_values.html")
+
+
+@web_server.route("/graphs")
+def graphs():
+    return render_template("graphs.html", supported_pairs=supported_pairs)
+
+
+@web_server.route("/live_graph/<c1>/<c2>")
+def live_graph(c1, c2):
+    return render_template("live_graph.html", pair=make_pair(c1, c2))
 
 
 @web_server.route("/portfolio")
@@ -81,11 +101,27 @@ def results_table():
     return render_template("results_table.html", scores=scores)
 
 
+@web_server.route("/bid_asks")
+def pricebook_table():
+    bid_asks = trading_server.get_bid_asks()
+    return render_template("bid_asks.html", bid_asks=bid_asks)
+
+
 @web_server.route("/")
 def index():
-    endpoint = configuration.TRADING_ENDPOINT
+    endpoint = TRADING_ENDPOINT
     return render_template("index.html", exchange_name=EXCHANGE_NAME, endpoint=endpoint,
                            supported_pairs=supported_pairs)
+
+
+@web_server.route("/portfolio_values_data")
+def portfolio_values_data():
+    result = defaultdict(list)
+    for value in trading_server.load_portfolio_values():
+        for user, pv in value["portfolio_values"]:
+            result[user].append((value["timestamp"], pv))
+
+    return json.dumps(result)
 
 
 @web_server.route("/pair_data/<pair>")
@@ -93,9 +129,30 @@ def pair_data(pair):
     pair = pair.replace("-", "/")
     cache = history_cache[pair]
 
+    transfers_raw, _ = trading_server.load_transfer_history()
+    markers = []
+    for transfer in transfers_raw:
+        source = transfer["update_result"].get("source_currency")
+        target = transfer["update_result"].get("target_currency")
+
+        if not source or not target or (make_pair(source, target) != pair and make_pair(target, source) != pair):
+            continue
+
+        if source == TARGET_CURRENCY:
+            is_buy = 1
+        else:
+            is_buy = 0
+
+        markers.append({
+            "u": transfer["username"],
+            "b": is_buy,
+            "t": transfer["market_timestamp"]
+        })
+
     result = {
         "pair": pair,
-        "data": cache.get_data()
+        "data": cache.get_data(),
+        "markers": markers
     }
     return json.dumps(result)
 
@@ -110,7 +167,10 @@ def timectime(s):
 
 @web_server.template_filter('as_target')
 def as_target(v):
-    return "%.2f €" % v
+    if v < 10.0:
+        return "%.4f €" % v
+    else:
+        return "%.2f €" % v
 
 
 @web_server.template_filter('as_amount')

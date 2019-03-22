@@ -34,6 +34,10 @@ class PricebookView(object):
         return self._processor.spread
 
     @property
+    def bid_ask(self):
+        return self._processor.bid_ask
+
+    @property
     def is_synchronized(self):
         return self._processor.is_ready
 
