@@ -5,7 +5,7 @@ from typing import Callable, List
 
 from websocket import create_connection, WebSocketConnectionClosedException, WebSocketBadStatusException
 
-from bot_trading.configuration import BOOK_DEPTH
+from bot_trading.core.configuration import BOOK_DEPTH
 from bot_trading.core.processors.processor_base import ProcessorBase
 
 

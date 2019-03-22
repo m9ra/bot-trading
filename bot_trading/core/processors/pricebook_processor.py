@@ -1,6 +1,6 @@
 from typing import List
 
-from bot_trading.configuration import BOOK_DEPTH
+from bot_trading.core.configuration import BOOK_DEPTH, DUST_LEVEL
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.processors.processor_base import ProcessorBase
 
@@ -65,7 +65,7 @@ class PricebookProcessor(ProcessorBase):
         else:
             container = self._choose_container(is_buy, self._w_buy_container, self._w_sell_container)
 
-        if amount <= 1e-12:
+        if amount <= DUST_LEVEL:
             if price in container:
                 del container[price]
         else:
