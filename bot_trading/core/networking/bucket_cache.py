@@ -73,4 +73,7 @@ class BucketCache(object):
             event.wait()  # wait until the entry comes
 
         entry = self._entries[bucket_offset]
+        if isinstance(entry, Event):
+            return None  # interruption may cause that entry is not received
+
         return entry

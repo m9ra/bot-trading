@@ -49,9 +49,9 @@ class StorageWriter(object):
         size = os.path.getsize(path)
         if size % TradeEntry.chunk_size != 0:
             with open(path, "w") as f:
-                f.truncate(int(size / TradeEntry.chunk_size) * TradeEntry.chunk_size)
+                f.seek(int(size / TradeEntry.chunk_size) * TradeEntry.chunk_size, os.SEEK_SET)
+                f.truncate()
                 raise AssertionError(f"Invalid alignment detected for {path}")
-
 
         return i * self.file_entry_count + int(size / TradeEntry.chunk_size)
 

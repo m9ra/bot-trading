@@ -35,9 +35,7 @@ class PortfolioController(object):
 
     @property
     def non_target_currencies(self) -> List[str]:
-        currencies = list(self._market.currencies)
-        currencies.remove(self.target_currency)
-        return currencies
+        return self._market.non_target_currencies
 
     @property
     def pairs(self):

@@ -46,7 +46,7 @@ class PricebookProcessor(ProcessorBase):
 
     @property
     def bid_ask(self):
-        return [min(self._sell_container), max(self._buy_container)]
+        return [max(self._buy_container), min(self._sell_container)]
 
     @property
     def current_depth(self):

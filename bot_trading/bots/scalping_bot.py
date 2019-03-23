@@ -12,7 +12,7 @@ class ScalpingBot(BotBase):
         self._last_stair_levels: Dict[str, float] = {}
 
     def update_portfolio(self, portfolio: PortfolioController):
-        single_buy_value = 50  # how much will be sent for every buy
+        single_buy_value = 10  # how much will be sent for every buy
         required_gain_threshold = 1.001  # how much the bought currency must gain in value to be sold
 
         present = portfolio.present

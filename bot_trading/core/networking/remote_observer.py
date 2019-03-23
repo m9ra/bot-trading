@@ -134,7 +134,7 @@ class RemoteObserver(object):
             elif "system" in message:
                 system_command = message["system"]
                 if system_command == "shutdown":
-                    print("shutdown command received")
+                    print("\nSHUTDOWN COMMAND RECEIVED")
                     self.shutdown = True
                     self._client.disconnect()
                     break

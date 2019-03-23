@@ -1,3 +1,5 @@
+import time
+from threading import Thread
 from typing import List
 
 from bot_trading.core.data.parsing import parse_pair, make_pair
@@ -20,7 +22,13 @@ class Market(object):
 
     @property
     def currencies(self):
-        return self._currencies
+        return list(self._currencies)
+
+    @property
+    def non_target_currencies(self):
+        result = self.currencies
+        result.remove(self.target_currency)
+        return result
 
     @property
     def direct_currency_pairs(self):
@@ -84,3 +92,8 @@ class Market(object):
 
     def run(self):
         self._connector.run()
+
+    def run_async(self):
+        Thread(target=self.run, daemon=True).start()
+        while not self.present.is_available:
+            time.sleep(0.1)
