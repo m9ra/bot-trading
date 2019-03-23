@@ -240,8 +240,13 @@ function refreshInterface(){
             $(".live-price-sell-" + suffix).text(roundValue(sell, 4));
         }
     })
-    .complete(function(){
+    .error(function(){
+        $('#sync_notification').show();
+    })
+    .success(function(){
         $('#sync_notification').hide();
+    })
+    .complete(function(){
         setTimeout(refreshInterface, 500);
     });
 }
