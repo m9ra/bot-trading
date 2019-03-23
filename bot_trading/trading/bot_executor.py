@@ -5,10 +5,13 @@ from bot_trading.bots.bot_base import BotBase
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.messages import log_executor, log_portfolio, log_command
 from bot_trading.core.runtime.portfolio_base import PortfolioBase
-from bot_trading.trading.market import Market
+from bot_trading.core.runtime.market import Market
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 
+"""
+Runs bot on a given market.
+"""
 class BotExecutor(object):
     def __init__(self, bot: BotBase, market: Market, portfolio: PortfolioBase):
         self._bot = bot
@@ -22,6 +25,9 @@ class BotExecutor(object):
         self._is_synchronized = False
 
     def run(self):
+        """
+        Runs bot updates on the market and potfolio.
+        """
         try:
             self._market.subscribe(self)
             self._market.run()
@@ -30,11 +36,18 @@ class BotExecutor(object):
             print("EXECUTOR IS STOPPING")
 
     def receive(self, entry: TradeEntry):
+        """
+        Handler of the live updates.
+        """
         log_executor(f"\r......[MARKET_CLOCK] {datetime.datetime.fromtimestamp(self._current_time)}", end=" " * 5,
                      flush=True)
         self._register(self._market.current_time)
 
     def _register(self, timestamp):
+        """
+        Register new timestamp from the live updates
+        """
+
         self._update_slack(timestamp)
         if self._bot_slack > 0:
             return  # bot can't trade (its in time slack or not enough info was collected yet)
@@ -51,12 +64,17 @@ class BotExecutor(object):
             self._last_bot_update = self._current_time
 
     def _consult_bot(self):
+        """
+        Bot consulting logic - keeps track of bot slack to prevent falling behind the market.
+        """
+
         log_executor(f"\r[MARKET_CLOCK] {datetime.datetime.fromtimestamp(self._current_time)}", end=" " * 30 + "\n")
 
         start = time.time()
         portfolio = PortfolioController(self._market, self._portfolio.get_state_copy())
         log_portfolio(portfolio)
         portfolio_before = str(portfolio)
+        self._bot.ensure_initialization(portfolio)
         self._bot.update_portfolio(portfolio)
         end = time.time()
 

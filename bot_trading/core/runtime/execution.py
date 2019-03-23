@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 
 from bot_trading.bots.bot_base import BotBase
@@ -9,9 +8,9 @@ from bot_trading.core.runtime.remote_portfolio import RemotePortfolio
 from bot_trading.core.runtime.sandbox_portfolio import SandboxPortfolio
 from bot_trading.core.runtime.validation import validate_email
 from bot_trading.trading.bot_executor import BotExecutor
-from bot_trading.trading.fullpass_connector import FullpassConnector
-from bot_trading.trading.market import Market
-from bot_trading.trading.peek_connector import PeekConnector
+from bot_trading.core.runtime.fullpass_connector import FullpassConnector
+from bot_trading.core.runtime.market import Market
+from bot_trading.core.runtime.peek_connector import PeekConnector
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 HISTORY_MODE = "history"

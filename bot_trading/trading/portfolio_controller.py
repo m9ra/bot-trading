@@ -1,10 +1,10 @@
 from copy import deepcopy
 from typing import Dict, Any, List, Optional
 
-from bot_trading.trading.currency_history import CurrencyHistory
-from bot_trading.trading.currency_position import CurrencyPosition
+from bot_trading.trading.price_snapshot import PriceSnapshot
+from bot_trading.core.runtime.currency_position import CurrencyPosition
 from bot_trading.trading.fund import Fund
-from bot_trading.trading.market import Market
+from bot_trading.core.runtime.market import Market
 from bot_trading.core.runtime.transfer_command import TransferCommand
 
 
@@ -29,6 +29,10 @@ class PortfolioController(object):
         return accumulator
 
     @property
+    def target_currency(self):
+        return self._market.target_currency
+
+    @property
     def currencies(self) -> List[str]:
         """ Currencies that can be traded."""
         return self._market.currencies
@@ -40,6 +44,10 @@ class PortfolioController(object):
     @property
     def pairs(self):
         return self._market.direct_currency_pairs
+
+    @property
+    def market(self):
+        return self._market
 
     @property
     def funds(self) -> List[Fund]:
@@ -55,18 +63,17 @@ class PortfolioController(object):
         return self.get_funds_with(gain_greater_than=1.0)
 
     @property
-    def present(self) -> CurrencyHistory:
-        return self.get_history(0)
+    def present(self) -> PriceSnapshot:
+        return self._market.present
 
-    @property
-    def target_currency(self):
-        return self._market.target_currency
-
-    def get_history(self, seconds_back) -> CurrencyHistory:
+    def get_history(self, seconds_back) -> PriceSnapshot:
         return self._market.get_history(seconds_back)
 
     def request_transfer(self, source_fund: Fund, target_currency: str, allowed_loss_ratio=0.0001):
-        """Requests transfer of amount of source_currency to the given target_currency"""
+        """
+        Requests transfer of amount of source_currency to the given target_currency
+        """
+
         for command in self.create_transfer_commands(source_fund, target_currency, allowed_loss_ratio):
             self.put_command(command)
 

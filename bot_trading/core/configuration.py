@@ -21,3 +21,6 @@ MIN_POSITION_BUCKET_VALUE = 1.0  # if the position bucket value is lower, it wil
 
 INITIAL_AMOUNT = 1000.0
 TARGET_CURRENCY = "EUR"
+
+COMMAND_BURST_LIMIT = 20 # how many commands can be bursted before limit kicks in
+COMMAND_RATE_LIMIT = 0.2 # how many commands per second is allowed

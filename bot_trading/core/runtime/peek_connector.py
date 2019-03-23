@@ -3,7 +3,7 @@ from typing import List
 
 from bot_trading.core.data.entry_reader_base import EntryReaderBase
 from bot_trading.core.data.trade_entry import TradeEntry
-from bot_trading.trading.connector_base import ConnectorBase
+from bot_trading.core.runtime.connector_base import ConnectorBase
 
 
 class PeekConnector(ConnectorBase):

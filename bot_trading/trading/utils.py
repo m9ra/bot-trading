@@ -1,12 +1,12 @@
 import datetime
 from typing import Dict
 
-from bot_trading.trading.currency_history import CurrencyHistory
+from bot_trading.trading.price_snapshot import PriceSnapshot
 from bot_trading.trading.fund import Fund
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 
-def calculate_value_deltas(present: CurrencyHistory, history: CurrencyHistory) -> Dict[str, float]:
+def calculate_value_deltas(present: PriceSnapshot, history: PriceSnapshot) -> Dict[str, float]:
     result = {}
     for currency in present.currencies:
         price_delta = present.get_unit_value(currency) - history.get_unit_value(currency)
@@ -28,7 +28,7 @@ def filter_currencies(deltas: Dict[str, float], portfolio: PortfolioController, 
     return result
 
 
-def future_value(fund: Fund, target_currency: str, present: CurrencyHistory, future: CurrencyHistory):
+def future_value(fund: Fund, target_currency: str, present: PriceSnapshot, future: PriceSnapshot):
     converted_fund = present.after_conversion(fund, target_currency)
     return future.get_value(converted_fund)
 

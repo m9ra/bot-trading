@@ -1,15 +1,15 @@
 from bot_trading.core.exceptions import TradeEntryNotAvailableException
 from bot_trading.core.data.parsing import parse_pair
-from bot_trading.trading.connector_base import ConnectorBase
+from bot_trading.core.runtime.connector_base import ConnectorBase
 from bot_trading.trading.fund import Fund
 from bot_trading.trading.pricebook_view import PricebookView
 
 
-class CurrencyHistory(object):
-    def __init__(self, market: "Market", connector: ConnectorBase):
+class PriceSnapshot(object):
+    def __init__(self, market: "Market", connector: ConnectorBase, current_time: float):
         self._market = market
         self._connector = connector
-        self._current_time = None
+        self._current_time = current_time
 
     @property
     def currencies(self):
@@ -21,6 +21,11 @@ class CurrencyHistory(object):
 
     @property
     def is_available(self):
+        """
+        Determine whether the snasphot is available for all traded pairs.
+        It can happen that when too far history is requested, some of the pair data won't be available.
+        """
+
         try:
             for pair in self._market.direct_currency_pairs:
                 if not self._connector.get_pricebook(*parse_pair(pair), self._current_time).is_synchronized:
@@ -30,9 +35,6 @@ class CurrencyHistory(object):
             return False
 
         return True
-
-    def set_time(self, time: float):
-        self._current_time = time
 
     def get_pricebook(self, source_currency: str, target_currency: str) -> PricebookView:
         return self._connector.get_pricebook(source_currency, target_currency, self._current_time)

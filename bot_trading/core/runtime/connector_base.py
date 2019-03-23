@@ -4,7 +4,7 @@ from bot_trading.core.data.entry_reader_base import EntryReaderBase
 from bot_trading.core.data.parsing import reverse_pair, make_pair
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.trading.pricebook_view import PricebookView
-from bot_trading.trading.pricebook_view_provider import PricebookViewProvider
+from bot_trading.core.runtime.pricebook_view_provider import PricebookViewProvider
 
 
 class ConnectorBase(object):

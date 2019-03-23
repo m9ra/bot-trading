@@ -11,18 +11,18 @@ from typing import List, Dict
 import jsonpickle
 from pymongo import MongoClient
 
-from bot_trading.core.configuration import TARGET_CURRENCY, INITIAL_AMOUNT
+from bot_trading.core.configuration import TARGET_CURRENCY, INITIAL_AMOUNT, COMMAND_BURST_LIMIT, COMMAND_RATE_LIMIT
 from bot_trading.core.data.parsing import parse_pair
 from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
+from bot_trading.core.exceptions import PortfolioUpdateException
 from bot_trading.core.networking.socket_client import SocketClient
 from bot_trading.core.networking.user import User
-from bot_trading.core.processors.pricebook_processor import PricebookProcessor
 from bot_trading.core.runtime.execution import get_initial_portfolio_state, WRITE_MODE
 from bot_trading.core.runtime.validation import validate_email
-from bot_trading.trading.market import Market
-from bot_trading.trading.peek_connector import PeekConnector
+from bot_trading.core.runtime.market import Market
+from bot_trading.core.runtime.peek_connector import PeekConnector
 from bot_trading.trading.portfolio_controller import PortfolioController
 
 _db_name = "bot_trading"
@@ -53,12 +53,7 @@ class TradingServer(object):
 
         connector = PeekConnector(list(self._storages.values()))
         self._market = Market(TARGET_CURRENCY, list(self._storages.keys()), connector)
-
-        Thread(target=self._run_market, daemon=True).start()
-        print("Market synchronization")
-        while not self._market.present.is_available:
-            time.sleep(0.1)
-        print("\t complete")
+        self._market.run_async()
 
     @property
     def currencies(self):
@@ -136,9 +131,9 @@ class TradingServer(object):
                 self._ensure_default(username, "total_seconds", 0)
                 self._ensure_default(username, "portfolio_value", INITIAL_AMOUNT)
                 self._ensure_default(username, "portfolio_state", get_initial_portfolio_state())
+                self._ensure_default(username, "recent_command_count", 0)
 
             print(f"logged in: {username}")
-
 
     def _update_statistics(self):
         i = 0
@@ -162,7 +157,9 @@ class TradingServer(object):
 
                     update = {
                         "$set": {
-                            "portfolio_value": value
+                            "portfolio_value": value,
+                            "recent_command_count": max(0.0,
+                                                        user_data.get("recent_command_count", 0) - COMMAND_RATE_LIMIT)
                         }
                     }
 
@@ -275,13 +272,17 @@ class TradingServer(object):
                         user_data = self._get_user_data(username)
                         state = deepcopy(user_data["portfolio_state"])
                         try:
+                            if user_data["recent_command_count"] > COMMAND_BURST_LIMIT:
+                                raise PortfolioUpdateException(f"Command burst limit was exceeded by {username}.")
+
                             update_result = update_command.apply(state, self._market)
                             db_update = {
                                 "$set": {
                                     "portfolio_state": state
                                 },
                                 "$inc": {
-                                    "accepted_command_count": 1
+                                    "accepted_command_count": 1,
+                                    "recent_command_count": 1.0
                                 }
                             }
 

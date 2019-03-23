@@ -6,24 +6,26 @@ from bot_trading.trading.portfolio_controller import PortfolioController
 
 
 class ScalpingBot(BotBase):
-    def __init__(self):
-        super().__init__()
+    def initialize(self, portfolio: PortfolioController):
         self.update_interval = 10
+
         self._last_stair_levels: Dict[str, float] = {}
+        for currency in portfolio.non_target_currencies:
+            self._last_stair_levels[currency] = portfolio.present.get_unit_cost(currency)
 
     def update_portfolio(self, portfolio: PortfolioController):
         single_buy_value = 10  # how much will be sent for every buy
         required_gain_threshold = 1.001  # how much the bought currency must gain in value to be sold
+        stair_height = (required_gain_threshold - 1.0) * 2
 
         present = portfolio.present
-
         for currency in portfolio.non_target_currencies:
-            current_level = present.get_unit_cost(currency)
-            if currency not in self._last_stair_levels:
-                self._last_stair_levels[currency] = current_level
+            # run scalping algorithm on every currency that can be bought by target currency
 
-            stair_height = (required_gain_threshold - 1.0) * 2
+            current_level = present.get_unit_cost(currency)
             last_level = self._last_stair_levels[currency]
+
+            # detect whether price stepped down/up the stair
             diff = current_level / last_level
             if diff < 1 - stair_height:
                 # we stepped down the whole stair

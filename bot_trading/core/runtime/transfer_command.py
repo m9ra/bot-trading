@@ -1,7 +1,7 @@
 from bot_trading.core.configuration import DUST_LEVEL, MIN_POSITION_BUCKET_VALUE
 from bot_trading.core.exceptions import PortfolioUpdateException
 from bot_trading.trading.fund import Fund
-from bot_trading.trading.market import Market
+from bot_trading.core.runtime.market import Market
 
 
 class TransferCommand(object):
