@@ -34,7 +34,7 @@ class NeuralPredictor(PredictorBase):
 
     def _get_prediction(self, samples):
         window, _ = self._normalize_data(samples)  # normalize in the same way as training data
-        x = np.reshape(window, [-1, self.window_steps])
+        x = np.reshape(window[-self.window_steps:], [-1, self.window_steps])
         y = self._model.predict(x)[0][0]
 
         denormalized_y = self._denormalize_target(samples, y)
