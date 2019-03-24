@@ -12,7 +12,7 @@ If you don't want to install tensorflow, tflearn, numpy... than remove NeuralPre
 run_sandbox_backtest(
     ## Uncomment following lines (one at a time), to try out different bots
     # PredictorBot(LinearPredictor(delta_scale=0.5)),
-    PredictorBot(NeuralPredictor(), prediction_lookahead=5),
+    PredictorBot(NeuralPredictor(), prediction_lookahead=10),
     # OraculumBot(),
     # ScalpingBot(),
 
