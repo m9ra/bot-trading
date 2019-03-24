@@ -1,5 +1,31 @@
+var SKIPPED_GRAPHS = {};
+var SKIPPED_PORTFOLIO_GRAPHS = {};
+
+document.addEventListener("visibilitychange", function() {
+    if(document.visibilityState != "visible" && document.visibilityState != "prerender")
+        return;
+
+    var graphs = SKIPPED_GRAPHS;
+    SKIPPED_GRAPHS = {};
+
+    var portfolio_graphs=SKIPPED_PORTFOLIO_GRAPHS;
+    SKIPPED_PORTFOLIO_GRAPHS = {}
+
+    for(var slot in graphs){
+        showGraph(slot, graphs[slot]);
+    }
+
+    for(var slot in portfolio_graphs){
+        showPortfolioValuesGraph(slot, portfolio_graphs[slot]);
+    }
+});
+
+
 function showPortfolioValuesGraph(slot, json){
-    if(document.visibilityState == "hidden") return;
+    if(document.visibilityState == "hidden") {
+        SKIPPED_PORTFOLIO_GRAPHS[slot]=json;
+        return;
+    }
     var odata = json;
 
     var labels=[];
@@ -54,7 +80,10 @@ function showPortfolioValuesGraph(slot, json){
 }
 
 function showGraph(slot, json){
-    if(document.visibilityState == "hidden") return;
+    if(document.visibilityState == "hidden") {
+        SKIPPED_GRAPHS[slot]=json;
+        return;
+    }
 
     var pair = json["pair"];
     var odata = json["data"];
