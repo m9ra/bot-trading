@@ -1,3 +1,5 @@
+from typing import Dict, Tuple, List
+
 from bot_trading.core.runtime.execution import create_trading_env, WRITE_MODE, HISTORY_MODE, PEEK_MODE
 
 # THOSE OBJECTS EXPOSE API TO THE REMOTE SERVER
@@ -9,7 +11,13 @@ market.run_async()
 
 # ========== API USAGE EXAMPLES =========
 
-def get_bid_ask_samples(seconds_back: float, duration: float = float("inf"), period=1.0):
+def get_bid_ask_samples(seconds_back: float, duration: float = float("inf"), period=1.0) -> \
+        Dict[str, List[Tuple[float, float, float]]]:
+    """
+    For each non-target currency returns triplets of (timestamp, bid, ask)
+    sampled every period of the specified time interval.
+    """
+
     samples = {}
     history = market.get_history(seconds_back)
 

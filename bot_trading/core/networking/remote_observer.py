@@ -6,6 +6,8 @@ from typing import List, Dict, Any
 
 import jsonpickle
 
+from bot_trading.configuration import LOCAL_DISK_CACHE_SIZE
+from bot_trading.core.data.disk_cache import DiskCache
 from bot_trading.core.data.storage_writer import StorageWriter
 from bot_trading.core.data.trade_entry import TradeEntry
 from bot_trading.core.messages import log_cache
@@ -23,6 +25,10 @@ class RemoteObserver(object):
         self._readers: Dict[str, RemoteEntryReader] = None
 
         self._client: SocketClient = None
+        self._disk_cache: DiskCache = None
+        if LOCAL_DISK_CACHE_SIZE > 0:
+            self._disk_cache = DiskCache(LOCAL_DISK_CACHE_SIZE)
+
         self._L_commands = RLock()
         self._current_command_id = 0
         self._command_events: Dict[int, Event] = {}
@@ -73,6 +79,13 @@ class RemoteObserver(object):
         return index * StorageWriter.bucket_entry_count
 
     def async_get_bucket(self, pair, bucket_index):
+        if self._disk_cache:
+            bucket_bytes = self._disk_cache.get_bucket(pair, bucket_index)
+            if bucket_bytes:
+                entries = TradeEntry.from_chunk(pair, bucket_bytes)
+                self._readers[pair]._receive_bucket(bucket_index, entries)
+                return
+
         log_cache(f"Requesting remote bucket {pair} {bucket_index}")
         self._client.send_json({
             "name": "async_get_bucket",
@@ -124,7 +137,12 @@ class RemoteObserver(object):
             elif "bucket" in message:
                 pair = message["pair"]
                 bucket_index = message["bucket_index"]
-                self._readers[pair]._receive_bucket(bucket_index, self._decode_chunk(pair, message["bucket"]))
+                base64_chunk = message["bucket"]
+                if self._disk_cache:
+                    payload = base64.b64decode(base64_chunk)
+                    self._disk_cache.set_bucket(pair, bucket_index, payload)
+
+                self._readers[pair]._receive_bucket(bucket_index, self._decode_chunk(pair, base64_chunk))
 
             elif "id" in message:
                 # response for a command came

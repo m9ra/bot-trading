@@ -160,3 +160,4 @@ venv.bak/
 
 /log/*
 /log/
+/bucket_cache.bin

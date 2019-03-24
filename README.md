@@ -1,5 +1,15 @@
 # Bot Trading
 
+## Requirements
+- `python > 3.6`
+- `pip install jsonpickle` this is a non-standard package that is required
+
+#### Recommended pacakges
+- for using NeuralPredictor you would need those packages
+- `pip install tensorflow`
+- `pip install tflearn`
+- `pip install numpy`
+
 ## Structure
 The toolkit consists of two parts.
 #### core

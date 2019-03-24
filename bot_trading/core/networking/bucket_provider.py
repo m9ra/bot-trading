@@ -1,4 +1,4 @@
-from threading import Lock
+from threading import RLock
 from typing import List, Callable, Dict
 
 from bot_trading.core.data.storage_writer import StorageWriter
@@ -19,8 +19,8 @@ class BucketProvider(object):
         self._requester = async_bucket_requester
         self._pair = pair
 
-        self._L_entry_index = Lock()
-        self._L_buckets = Lock()
+        self._L_entry_index = RLock()
+        self._L_buckets = RLock()
         self._buckets: Dict[int, BucketCache] = {}
         self._current_peek_entry_index = entry_count
 

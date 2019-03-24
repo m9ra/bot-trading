@@ -1,4 +1,4 @@
-from threading import Event, Lock
+from threading import Event, RLock
 from typing import List, Any, Optional, Callable
 
 from bot_trading.core.data.storage_writer import StorageWriter
@@ -19,7 +19,7 @@ class BucketCache(object):
 
         self._is_requested = False
         self._write_count = 0
-        self._L_entries = Lock()
+        self._L_entries = RLock()
 
         self._entries: List[Any] = [self._not_requested] * StorageWriter.bucket_entry_count
 
@@ -60,12 +60,13 @@ class BucketCache(object):
             event: Event = None
             if entry is self._not_requested:
                 # we can request and block here
+                event = Event()
+                self._entries[bucket_offset] = event
+
                 if not self._is_requested:
                     self._async_bucket_requester(self._pair, self._bucket_id)
                     self._is_requested = True  # this avoid multiple requests
 
-                event = Event()
-                self._entries[bucket_offset] = event
             elif entry is Event:
                 event = entry
 

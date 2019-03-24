@@ -33,14 +33,14 @@ def run_sandbox_trades(bot: BotBase):
     run_on_market(market, bot, portfolio)
 
 
-def run_sandbox_backtest(bot: BotBase, start_hours_ago=None, run_duration_hours=None,
+def run_sandbox_backtest(bot: BotBase, start_hours_ago=None, run_length_in_hours=None,
                          start_timestamp=None, end_timestamp=None):
     market, _ = create_trading_env(HISTORY_MODE, READ_MODE)
 
     if start_timestamp and start_hours_ago:
         raise ValueError("Only one of start_timestamp and start_hours_ago can be specified")
 
-    if end_timestamp and run_duration_hours:
+    if end_timestamp and run_length_in_hours:
         raise ValueError("Only one of end_timestamp and run_duration_hours can be specified")
 
     if start_hours_ago != None:
@@ -49,9 +49,9 @@ def run_sandbox_backtest(bot: BotBase, start_hours_ago=None, run_duration_hours=
     if start_timestamp:
         market._connector.set_run_start(start_timestamp)
 
-    if run_duration_hours:
+    if run_length_in_hours:
         start = market._connector.get_start_timestamp()
-        end_timestamp = start + run_duration_hours * 3600
+        end_timestamp = start + run_length_in_hours * 3600
 
     if end_timestamp:
         market._connector.set_run_end(end_timestamp)

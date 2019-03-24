@@ -1,3 +1,5 @@
+from typing import List
+
 from bot_trading.core.exceptions import TradeEntryNotAvailableException
 from bot_trading.core.data.parsing import parse_pair
 from bot_trading.core.runtime.connector_base import ConnectorBase
@@ -14,6 +16,14 @@ class PriceSnapshot(object):
     @property
     def currencies(self):
         return self._market.currencies
+
+    @property
+    def target_currency(self):
+        return self._market.target_currency
+
+    @property
+    def non_target_currencies(self):
+        return self._market.non_target_currencies
 
     @property
     def timestamp(self):
@@ -38,6 +48,9 @@ class PriceSnapshot(object):
 
     def get_pricebook(self, source_currency: str, target_currency: str) -> PricebookView:
         return self._connector.get_pricebook(source_currency, target_currency, self._current_time)
+
+    def get_snapshot(self, seconds_back):
+        return PriceSnapshot(self._market, self._connector, self._current_time - seconds_back)
 
     def get_unit_value(self, currency: str) -> float:
         return self.get_value(Fund(1.0, currency)).amount
@@ -74,3 +87,18 @@ class PriceSnapshot(object):
     def get_spread(self, currency: str) -> float:
         pricebook = self.get_pricebook(currency, self._market.target_currency)
         return pricebook.spread
+
+    def get_unit_value_samples(self, currency: str, sampling_period: float) -> List[float]:
+        pricebook = self.get_pricebook(currency, self._market.target_currency)
+
+        result = []
+
+        current_time = self._current_time
+        while current_time < self._market.current_time:
+            if not pricebook.fast_forward_to(current_time):
+                break  # no more data available
+
+            result.append(pricebook.bid_ask[0])
+            current_time += sampling_period
+
+        return result
