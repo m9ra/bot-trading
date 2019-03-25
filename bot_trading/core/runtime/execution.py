@@ -22,9 +22,8 @@ READ_MODE = "read"
 
 def get_username():
     from bot_trading.configuration import USERNAME
-    username = os.getenv("USERNAME", USERNAME)
 
-    return username
+    return USERNAME
 
 
 def run_sandbox_trades(bot: BotBase):

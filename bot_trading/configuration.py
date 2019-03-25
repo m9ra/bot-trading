@@ -22,7 +22,7 @@ try:
     # this ensures invalid username is recognized
     from bot_trading.core.runtime.validation import validate_email
 
-    username = os.getenv("USERNAME", USERNAME)
+    username = os.getenv("BOT_USERNAME", USERNAME)
     validate_email(username)
 except:
     raise AssertionError(
