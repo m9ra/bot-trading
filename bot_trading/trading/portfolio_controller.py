@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Dict, Any, List, Optional
 
+from bot_trading.core.configuration import DUST_LEVEL
 from bot_trading.trading.price_snapshot import PriceSnapshot
 from bot_trading.core.runtime.currency_position import CurrencyPosition
 from bot_trading.trading.fund import Fund
@@ -81,7 +82,7 @@ class PortfolioController(object):
         self._validate_currencies(source_fund, target_currency)
 
         position = self._currency_positions.get(source_fund.currency)
-        if position.total_amount < source_fund.amount:
+        if position.total_amount < source_fund.amount - DUST_LEVEL:
             raise ValueError(
                 f"Requested amount of {source_fund} is not available, only {position.total_amount}.")
 
