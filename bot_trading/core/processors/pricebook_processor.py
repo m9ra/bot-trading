@@ -32,8 +32,7 @@ class PricebookProcessor(ProcessorBase):
 
     @property
     def buy_levels(self):
-        if min(self._sell_container) - max(self._buy_container) < 0:
-            # todo this is safety hack
+        if self._sell_container and self._buy_container and (min(self._sell_container) - max(self._buy_container) < 0):
             levels = list(reversed(self._get_levels(self._sell_container, False)))
         else:
             levels = self._get_levels(self._buy_container, True)
@@ -42,11 +41,10 @@ class PricebookProcessor(ProcessorBase):
 
     @property
     def sell_levels(self):
-        if min(self._sell_container) - max(self._buy_container) >= 0:
-            # todo this is safety hack
-            levels = list(reversed(self._get_levels(self._sell_container, False)))
-        else:
+        if self._sell_container and self._buy_container and (min(self._sell_container) - max(self._buy_container) < 0):
             levels = self._get_levels(self._buy_container, True)
+        else:
+            levels = list(reversed(self._get_levels(self._sell_container, False)))
 
         return list(reversed(levels))
 
