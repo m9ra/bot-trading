@@ -25,7 +25,7 @@ class DiskCache(object):
         self._available_cache_entry_ids = set(range(self._allowed_cache_entry_count))
         self._has_change_update = False
 
-        print("LOADING DISK CACHE")
+        print("LOADING DISK CACHE...")
         try:
             with open(DiskCache.get_cache_path(), "rb") as f:
                 while True:  # reading cache entry behind the file size will raise an exception
@@ -42,7 +42,7 @@ class DiskCache(object):
                         self._available_cache_entry_ids.remove(entry.cache_entry_id)
 
         except:
-            print("\t done")
+            print("\t complete")
 
         Thread(target=self._journal_writer, daemon=True).start()
 

@@ -54,7 +54,7 @@ class RemoteObserver(object):
         self._readers = readers
 
     def get_readers(self):
-        print("Storage synchronization...")
+        print("STORAGE SYNCHRONIZATION...")
         while self._readers is None:
             time.sleep(0.1)  # wait until storages are synchronized
 

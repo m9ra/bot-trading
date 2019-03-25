@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from bot_trading.core.exceptions import TradeEntryNotAvailableException
 from bot_trading.core.data.parsing import parse_pair
@@ -98,6 +98,20 @@ class PriceSnapshot(object):
         while current_time < end_timestamp:
             pricebook.fast_forward_to(current_time)
             result.append(pricebook.bid_ask[0])
+            current_time += sampling_period
+
+        return result
+
+    def get_unit_bid_ask_samples(self, currency: str, sampling_period: float, end_timestamp: float = None) -> List[Tuple[float,float]]:
+        pricebook = self.get_pricebook(currency, self._market.target_currency)
+
+        result = []
+
+        end_timestamp = end_timestamp or self._market.current_time
+        current_time = self._current_time
+        while current_time < end_timestamp:
+            pricebook.fast_forward_to(current_time)
+            result.append(pricebook.bid_ask)
             current_time += sampling_period
 
         return result

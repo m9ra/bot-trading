@@ -54,13 +54,14 @@ class PricebookView(object):
                 raise TradeEntryNotAvailableException(self.pair, timestamp, self._current_index)
 
             if entry.timestamp > timestamp:
-                if not entry.is_service_entry:
-                    # we can break easily here
-                    return True
+                if self._processor.buy_levels and self._processor.sell_levels:
+                    if not entry.is_service_entry:
+                        # we can break easily here
+                        return True
 
-                if previous_entry and not previous_entry.is_service_entry:
-                    # on the edge between service entries, we can stop before
-                    return True
+                    if previous_entry and not previous_entry.is_service_entry:
+                        # on the edge between service entries, we can stop before
+                        return True
 
             self._process_entry(entry)
             previous_entry = entry
