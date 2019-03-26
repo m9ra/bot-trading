@@ -20,7 +20,7 @@ class NeuralPredictor(PredictorBase):
         self.sample_period = 5.0  # how long apart the window samples will be
         self.model_strength = 0.2  # inhibits strength of model predictions by keeping them close to current values
         self.target_factor = 1000.0  # is used for scaling output - this gives better loss readings
-        self.model_name = "model_10s4"
+        self.model_name = "trained_models/model_10s4"
 
         self.currencies = list(sorted(snapshot.non_target_currencies))
 
