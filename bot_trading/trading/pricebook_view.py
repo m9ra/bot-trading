@@ -98,11 +98,12 @@ class PricebookView(object):
 
         # todo consider levels
         # todo consider fees
+        bid, ask = self.bid_ask
         if is_reversed:
-            price_per_source_unit = self.buy_levels[-1][0]
+            price_per_source_unit = bid
             return Fund(fund.amount / price_per_source_unit, self.source_currency)
         else:
-            price_per_source_unit = self.sell_levels[0][0]
+            price_per_source_unit = ask
             return Fund(fund.amount * price_per_source_unit, self.target_currency)
 
     def _process_entry(self, entry: TradeEntry):

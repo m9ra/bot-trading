@@ -1,9 +1,10 @@
+import os
 import pickle
 import random
 import struct
 import time
 import traceback
-from io import SEEK_SET
+from os import SEEK_SET
 from queue import Queue
 from threading import Thread
 from typing import Dict, Tuple, List, Callable
@@ -84,6 +85,7 @@ class DiskCache(object):
             return id
 
     def _journal_writer(self):
+        cache_path = DiskCache.get_cache_path()
         while True:
             entry: CacheEntry = self._disk_queue.get()
             chunk = entry.to_chunk()
@@ -91,9 +93,14 @@ class DiskCache(object):
             while True:
                 try:
                     # try to write the data (it may fail because of concurrent write attempts)
-                    with open(DiskCache.get_cache_path(), "ab") as f:
+                    with open(cache_path, "r+b") as f:
                         f.seek(entry.entry_offset, SEEK_SET)
                         f.write(chunk)
+                except FileNotFoundError:
+                    with (open(cache_path, "c")) as f:
+                        f.close()
+                        time.sleep(5.0)
+                        continue
                 except:
                     traceback.print_exc()
                     time.sleep(5.0)

@@ -32,21 +32,33 @@ class PricebookProcessor(ProcessorBase):
 
     @property
     def buy_levels(self):
-        levels = self._get_levels(self._buy_container, True)
+        if self._sell_container and self._buy_container and (min(self._sell_container) - max(self._buy_container) < 0):
+            levels = list(reversed(self._get_levels(self._sell_container, False)))
+        else:
+            levels = self._get_levels(self._buy_container, True)
+
         return levels
 
     @property
     def sell_levels(self):
-        levels = self._get_levels(self._sell_container, False)
-        return list(reversed(levels))
+        if self._sell_container and self._buy_container and (min(self._sell_container) - max(self._buy_container) < 0):
+            levels = self._get_levels(self._buy_container, True)
+        else:
+            levels = list(reversed(self._get_levels(self._sell_container, False)))
+
+        return list(levels)
 
     @property
     def spread(self):
-        return max(0.0, min(self._sell_container) - max(self._buy_container))
+        bid_ask = self.bid_ask
+        return max(0.0, bid_ask[1] - bid_ask[0])
 
     @property
     def bid_ask(self):
-        return [max(self._buy_container), min(self._sell_container)]
+        max_b = max(self._buy_container)
+        min_b = min(self._sell_container)
+
+        return [min(max_b, min_b), max(max_b, min_b)]
 
     @property
     def current_depth(self):

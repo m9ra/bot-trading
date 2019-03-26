@@ -30,7 +30,13 @@ def filter_currencies(deltas: Dict[str, float], portfolio: PortfolioController, 
 
 def future_value(fund: Fund, target_currency: str, present: PriceSnapshot, future):
     converted_fund = present.after_conversion(fund, target_currency)
-    return future.get_value(converted_fund)
+    #if converted_fund.currency != target_currency:
+    #    converted_fund = Fund(converted_fund.amount * 0.99, converted_fund.currency)
+
+    value = future.get_value(converted_fund)
+    print(f"{converted_fund} value estimation: {value}")
+
+    return value
 
 
 def timestamp_to_datetime(timestamp):
