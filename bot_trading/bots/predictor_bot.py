@@ -1,3 +1,5 @@
+import random
+
 from bot_trading.bots.bot_base import BotBase
 from bot_trading.bots.predictors.predictor_base import PredictorBase
 from bot_trading.trading.portfolio_controller import PortfolioController
@@ -26,5 +28,11 @@ class PredictorBot(BotBase):
             if best_currency != fund.currency:
                 if fund.currency == portfolio.target_currency:
                     fund = fund.soft_cap_to(100)
+
+                else:
+                    profitable_fund = portfolio.get_fund_with(fund.currency, gain_greater_than=1.0005)
+                    if not profitable_fund:
+                        if random.uniform(0.0, 1.0) < 0.95:
+                            continue  # don't make the trade yet (we are loosing anyway)
 
                 portfolio.request_transfer(fund, best_currency)

@@ -17,6 +17,6 @@ run_sandbox_backtest(
     # ScalpingBot(),
 
     ## Specify historic area where to run the backtest
-    start_hours_ago=2.0,  # comment out to run from beginning of the available history
+    start_hours_ago=4.0,  # comment out to run from beginning of the available history
     # run_length_in_hours=0.5 # comment out to run until present
 )

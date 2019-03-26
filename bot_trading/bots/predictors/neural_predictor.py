@@ -1,3 +1,5 @@
+import os
+
 import tflearn
 
 from bot_trading.bots.predictors.predictor_base import PredictorBase
@@ -13,100 +15,137 @@ This is a sketch of neural predictor
 
 class NeuralPredictor(PredictorBase):
     def _run_training(self, snapshot: PriceSnapshot):
-        training_data_length = 10000.0  # seconds into history that will be used for generating training data
+        self.training_data_length = 200000.0  # seconds into history that will be used for generating training data
         self.window_steps = 100  # how large window will be fed as the input
         self.sample_period = 5.0  # how long apart the window samples will be
-        self.model_strength = 0.9  # inhibits strength of model predictions by keeping them close to current values
-        self.target_factor = 1000  # is used for scaling output - this gives better loss readings
+        self.model_strength = 0.2  # inhibits strength of model predictions by keeping them close to current values
+        self.target_factor = 1000.0  # is used for scaling output - this gives better loss readings
+        self.model_name = "model_10s4"
 
-        training_start_snapshot = snapshot.get_snapshot(seconds_back=training_data_length)
-
-        inputs = []
-        targets = []
-        for currency in training_start_snapshot.non_target_currencies:
-            # collect history windows for all currencies
-            cis, cts = self._get_normalized_windows(currency, training_start_snapshot)
-            inputs.extend(cis)
-            targets.extend(cts)
+        self.currencies = list(sorted(snapshot.non_target_currencies))
 
         # train model on pair window -> target (where target is the value after the predicted period)
-        self._model = self._train_model(inputs, targets)
+        self._model = self._get_model(snapshot)
 
-    def _get_prediction(self, samples):
-        window, _ = self._normalize_data(samples)  # normalize in the same way as training data
-        x = np.reshape(window[-self.window_steps:], [-1, self.window_steps])
-        y = self._model.predict(x)[0][0]
-
-        denormalized_y = self._denormalize_target(samples, y)
-        print(f"PREDICTION raw: {y}, denorm: {denormalized_y}")
-
-        return denormalized_y
-
-    def _train_model(self, input_windows, targets):
-
-        train_x = np.reshape(input_windows, [-1, self.window_steps])
-        train_y = np.reshape(targets, [-1, 1])
+    def _get_model(self, snapshot):
+        currencies_len = len(self.currencies)
 
         # Network building
-        net = tflearn.input_data(shape=[None, self.window_steps])
-        # net = tflearn.lstm(net, n_units=32, return_seq=False)
-        net = tflearn.fully_connected(net, 30, activation='sigmoid')
+        net = tflearn.input_data(shape=[None, 2 * self.window_steps * currencies_len])
+
+        net = tflearn.fully_connected(net, 200, activation='sigmoid')
+        net = tflearn.batch_normalization(net)
+        net = tflearn.fully_connected(net, 50, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, 10, activation='sigmoid')
-        net = tflearn.fully_connected(net, 1, activation='linear')
-        net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rate=0.0001)
+        net = tflearn.batch_normalization(net)
+        net = tflearn.fully_connected(net, currencies_len, activation='linear')
+        net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rate=0.002)
 
         # Training
         model = tflearn.DNN(net, tensorboard_verbose=0)
-        model.fit(train_x, train_y, n_epoch=32, validation_set=0.1, batch_size=128, shuffle=True)
+
+        if self.model_name and os.path.exists(self.model_name + ".index"):
+            model.load(self.model_name)
+            return model
+
+        print("TRAINING MODEL")
+
+        training_start_snapshot = snapshot.get_snapshot(seconds_back=self.training_data_length)
+
+        c_samples = []
+        c_targets = []
+        for currency in self.currencies:
+            samples = training_start_snapshot.get_unit_bid_ask_samples(currency, sampling_period=self.sample_period)
+            c_sample = []
+            c_target = []
+
+            lookahead = int(self.prediction_lookahead_seconds / self.sample_period) * 6
+            for i in range(self.window_steps, len(samples) - lookahead, self.window_steps // 3):
+                # target = samples[i + lookahead][0] # direct target
+                target = max(s[0] for s in samples[i:i + lookahead])
+                sample = samples[i - self.window_steps:i]
+                c_sample.append(sample)
+                c_target.append(target)
+
+            c_samples.append(c_sample)
+            c_targets.append(c_target)
+
+        train_x = self._get_inputs(c_samples)
+        train_y = self._get_targets(c_samples, c_targets)
+
+        train_x, train_y = tflearn.data_utils.shuffle(train_x, train_y)
+
+        model.fit(train_x, train_y, n_epoch=200, validation_set=0.1, batch_size=128, shuffle=True)
+        if self.model_name:
+            model.save(self.model_name)
 
         return model
 
+    def _get_prediction(self, c_sample):
+        x = self._get_inputs([c_sample])
+        y = self._model.predict(x)[0]
+
+        prediction = []
+        for i in range(len(y)):
+            raw_y = y[i]
+            sample = c_sample[i]
+            sample_mean = np.mean(sample)
+            prediction.append((raw_y / self.target_factor) * sample_mean + sample_mean)
+
+            print(f"PREDICTION raw: {raw_y}, denorm: {prediction[-1]}")
+
+        return prediction
+
+    def _get_targets(self, c_samples, c_targets):
+        currencies_len = len(self.currencies)
+
+        normalized_all = []
+        for c_sample, c_target in zip(c_samples, c_targets):
+            normalized = []
+            normalized_all.append(normalized)
+            for sample, target in zip(c_sample, c_target):
+                sample_mean = np.mean(sample)
+                norm = (target - sample_mean) / sample_mean * self.target_factor
+                normalized.append(norm)
+
+        y = np.reshape(np.swapaxes(normalized_all, 0, 1), [-1, currencies_len])
+        return y
+
+    def _get_inputs(self, c_samples):
+        currencies_len = len(self.currencies)
+
+        normalized_all = []
+        for c_sample in c_samples:
+            normalized = []
+            normalized_all.append(normalized)
+            for sample in c_sample:
+                sample_mean = np.mean(sample)
+                norm = (sample - sample_mean) / sample_mean
+                normalized.append(norm)
+
+        x = np.reshape(np.swapaxes(normalized_all, 0, 1), [-1, 2 * self.window_steps * currencies_len])
+        return x
+
     def _calculate_future_unit_values(self, present: PriceSnapshot):
         history = present.get_snapshot(seconds_back=self.window_steps * self.sample_period)
+        c_input = []
+        for currency in self.currencies:
+            samples = history.get_unit_bid_ask_samples(currency, sampling_period=self.sample_period)
+            samples = samples[-self.window_steps:]
+            c_input.append(samples)
+
+        predictions = self._get_prediction(c_input)
 
         result = {}
-        for currency in present.non_target_currencies:
-            # get input data for the network - sample single window
-            samples = history.get_unit_value_samples(currency, self.sample_period)
-            model_value = self._get_prediction(samples)
+        for i, currency in enumerate(self.currencies):
+            model_value = predictions[i]
             current_value = present.get_unit_value(currency)
             final_prediction = (1.0 - self.model_strength) * current_value + self.model_strength * model_value
-            if model_value < current_value:
-                final_prediction = model_value # don't underestimate low trends
+            # if model_value < current_value:
+            #    final_prediction = model_value  # don't underestimate low trends
 
-            result[currency] = final_prediction  # store the prediction for further use
+            print(f"diff {currency}: {model_value - current_value}")
+            result[currency] = final_prediction
 
         return result
-
-    def _denormalize_target(self, window, normalized_target):
-        mean = np.mean(window)
-        return normalized_target / self.target_factor * mean + mean
-
-    def _normalize_data(self, window, target=None):
-        result = np.array(window)
-        mean = np.mean(window)
-
-        if target is None:
-            normalized_target = None
-        else:
-            normalized_target = (target - mean) / mean * self.target_factor
-
-        return list((result - mean) / mean * self.target_factor), normalized_target
-
-    def _get_normalized_windows(self, currency, training_snapshot: PriceSnapshot):
-        value_samples = training_snapshot.get_unit_value_samples(currency, self.sample_period)
-        input_windows = []
-        targets = []
-
-        lookahead = int(self.prediction_lookahead_seconds / self.sample_period)
-
-        for i in range(self.window_steps, len(value_samples) - lookahead):
-            target = value_samples[i + lookahead]
-            window = (value_samples[i - self.window_steps:i])
-            normalized_window, normalized_target = self._normalize_data(window, target)
-
-            input_windows.append(normalized_window)
-            targets.append(normalized_target)
-
-        return input_windows, targets

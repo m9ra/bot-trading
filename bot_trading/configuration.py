@@ -14,9 +14,9 @@ LOG_LEVELS = {
     "PORTFOLIO"
 }
 
-LOCAL_DISK_CACHE_SIZE = 100_000_000 # maximum size of a cache file that saves network traffic (set to 0 for disabling)
+LOCAL_DISK_CACHE_SIZE = 200_000_000 # maximum size of a cache file that saves network traffic (set to 0 for disabling)
 
-USERNAME = "!!!YOUR EMAIL BELONGS HERE!!!"  # FILL IN YOUR EMAIL ADDRESS email@is.username
+USERNAME = "mvodolan@cz.ibm.com"  # FILL IN YOUR EMAIL ADDRESS email@is.username
 
 try:
     # this ensures invalid username is recognized
