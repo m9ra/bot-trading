@@ -5,6 +5,7 @@ import tflearn
 from bot_trading.bots.predictors.predictor_base import PredictorBase
 from bot_trading.trading.price_snapshot import PriceSnapshot
 import numpy as np
+import tensorflow as tf
 
 """
 This is a sketch of neural predictor 
@@ -20,7 +21,7 @@ class NeuralPredictor(PredictorBase):
         self.sample_period = 5.0  # how long apart the window samples will be
         self.model_strength = 0.2  # inhibits strength of model predictions by keeping them close to current values
         self.target_factor = 1000.0  # is used for scaling output - this gives better loss readings
-        self.model_name = "trained_models/model_10s4"
+        self.model_name = "trained_models/model_10s9"
 
         self.currencies = list(sorted(snapshot.non_target_currencies))
 
@@ -28,24 +29,27 @@ class NeuralPredictor(PredictorBase):
         self._model = self._get_model(snapshot)
 
     def _get_model(self, snapshot):
+        load_model = self.model_name and os.path.exists(self.model_name + ".index")
+
         currencies_len = len(self.currencies)
 
         # Network building
         net = tflearn.input_data(shape=[None, 2 * self.window_steps * currencies_len])
+        net = gaussian_noise_layer(net, 0.0001)
 
         net = tflearn.fully_connected(net, 200, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, 50, activation='sigmoid')
         net = tflearn.batch_normalization(net)
-        net = tflearn.fully_connected(net, 10, activation='sigmoid')
+        net = tflearn.fully_connected(net, 30, activation='relu')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, currencies_len, activation='linear')
-        net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rate=0.002)
+        net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rate=0.001)
 
         # Training
         model = tflearn.DNN(net, tensorboard_verbose=0)
 
-        if self.model_name and os.path.exists(self.model_name + ".index"):
+        if load_model:
             model.load(self.model_name)
             return model
 
@@ -60,7 +64,7 @@ class NeuralPredictor(PredictorBase):
             c_sample = []
             c_target = []
 
-            lookahead = int(self.prediction_lookahead_seconds / self.sample_period) * 6
+            lookahead = int(self.prediction_lookahead_seconds / self.sample_period) * 3
             for i in range(self.window_steps, len(samples) - lookahead, self.window_steps // 3):
                 # target = samples[i + lookahead][0] # direct target
                 target = max(s[0] for s in samples[i:i + lookahead])
@@ -84,7 +88,10 @@ class NeuralPredictor(PredictorBase):
 
     def _get_prediction(self, c_sample):
         x = self._get_inputs([c_sample])
-        y = self._model.predict(x)[0]
+
+        xs = [x[0]] * 20
+        ys = self._model.predict(xs)
+        y = np.median(ys, axis=0)
 
         prediction = []
         for i in range(len(y)):
@@ -149,3 +156,8 @@ class NeuralPredictor(PredictorBase):
             result[currency] = final_prediction
 
         return result
+
+
+def gaussian_noise_layer(input_layer, std):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32)
+    return input_layer + noise

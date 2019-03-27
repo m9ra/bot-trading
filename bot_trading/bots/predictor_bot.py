@@ -25,18 +25,19 @@ class PredictorBot(BotBase):
             best_currency = max(portfolio.currencies,
                                 key=lambda currency: future_value(fund, currency, present, self._predictor))
 
-            if best_currency != fund.currency:
-                if fund.currency == portfolio.target_currency:
-                    fund = fund.soft_cap_to(200)
+            if best_currency == fund.currency:
+                continue
 
-                else:
-                    profitable_fund = portfolio.get_fund_with(fund.currency, gain_greater_than=1.0005)
-                    if not profitable_fund:
-                        if random.uniform(0.0, 1.0) < 0.99:
-                            continue  # don't make the trade yet (we are loosing anyway)
+            if fund.currency == portfolio.target_currency:
+                fund = fund.soft_cap_to(200)
+            else:
+                profitable_fund = portfolio.get_fund_with(fund.currency, gain_greater_than=1.0005)
+                if not profitable_fund:
+                    if random.uniform(0.0, 1.0) < 0.999:
+                        continue  # don't make the trade yet (we are loosing anyway)
 
-                if best_currency!=portfolio.target_currency:
-                    if portfolio.get_fund_with(best_currency,gain_greater_than=0.01):
-                        continue # buy everything once at most
+            if best_currency != portfolio.target_currency:
+                if portfolio.get_fund_with(best_currency, gain_greater_than=0.01):
+                    continue  # buy everything once at most
 
-                portfolio.request_transfer(fund, best_currency)
+            portfolio.request_transfer(fund, best_currency)
