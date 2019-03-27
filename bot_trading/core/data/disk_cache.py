@@ -97,7 +97,7 @@ class DiskCache(object):
                         f.seek(entry.entry_offset, SEEK_SET)
                         f.write(chunk)
                 except FileNotFoundError:
-                    with (open(cache_path, "c")) as f:
+                    with (open(cache_path, "w")) as f:
                         f.close()
                         time.sleep(5.0)
                         continue
