@@ -23,6 +23,10 @@ class PricebookProcessor(ProcessorBase):
         return self._buy_container is not None and self._sell_container is not None
 
     @property
+    def is_book_available(self):
+        return self._buy_container and self._sell_container
+
+    @property
     def current_time(self):
         return self._current_time
 

@@ -15,17 +15,25 @@ class TransferCommand(object):
         if self._source_amount <= DUST_LEVEL:
             raise PortfolioUpdateException(f"Requested source amount {self._source_amount} is too low.")
 
-        target_amount = market.present.after_conversion(Fund(self._source_amount, self._source), self._target).amount
+        present = market.present
+
+        target_amount = present.after_conversion(Fund(self._source_amount, self._source), self._target).amount
         if target_amount < self._min_target_amount:
             # the real target amount is not meeting the expectations
             raise PortfolioUpdateException(
                 f"Requested {self._min_target_amount} but got only {target_amount} of {self._target}")
 
+        target_value = present.get_value(Fund(target_amount, self._target)).amount
+        source_initial_value = present.get_value(Fund(self._source_amount, self._source)).amount
+
+        if source_initial_value < target_value:
+            raise PortfolioUpdateException(
+                f"Value can't increase during portfolio update. Source value: {source_initial_value} < Target value: {target_value}")
+
         positions = portfolio_state["positions"]
 
         # subtract amount from source positions
         pending_amount = self._source_amount
-        source_initial_value = market.get_value(self._source_amount, self._source).amount
         closed_initial_value = 0.0
 
         # get required amount from source buckets

@@ -54,13 +54,13 @@ class PricebookView(object):
                 raise TradeEntryNotAvailableException(self.pair, timestamp, self._current_index)
 
             if entry.timestamp > timestamp:
-                if self._processor.buy_levels and self._processor.sell_levels:
+                if self._processor.is_book_available:
                     if not entry.is_service_entry:
-                        # we can break easily here
+                        # we can obviously stop here
                         return True
 
                     if previous_entry and not previous_entry.is_service_entry:
-                        # on the edge between service entries, we can stop before
+                        # on the edge between service entries -> stop is allowed before service block
                         return True
 
             self._process_entry(entry)
@@ -82,11 +82,12 @@ class PricebookView(object):
 
         # todo consider levels
         # todo consider fees
+        bid, ask = self.bid_ask
         if is_reversed:
-            price_per_source_unit = self.sell_levels[-1][0]
+            price_per_source_unit = ask
             return Fund(fund.amount / price_per_source_unit, self.source_currency)
         else:
-            price_per_source_unit = self.buy_levels[0][0]
+            price_per_source_unit = bid
             return Fund(fund.amount * price_per_source_unit, self.target_currency)
 
     def to_convert(self, fund: Fund):

@@ -296,13 +296,14 @@ class TradingServer(object):
                             response["accepted"] = True
                             response["portfolio_state"] = state
 
-                        except:
+                        except Exception as e:
                             traceback.print_exc()
                             db_update = {
                                 "$inc": {
                                     "declined_command_count": 1
                                 }
                             }
+                            response["portfolio_update_error"] = str(e)
 
                         self._collection.users.update(
                             {"_id": username},

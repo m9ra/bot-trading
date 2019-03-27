@@ -22,8 +22,8 @@ try:
     # this ensures invalid username is recognized
     from bot_trading.core.runtime.validation import validate_email
 
-    username = os.getenv("BOT_USERNAME", USERNAME)
-    validate_email(username)
+    USERNAME = os.getenv("BOT_USERNAME", USERNAME)
+    validate_email(USERNAME)
 except:
     raise AssertionError(
-        f"Username `{username}` is not valid. Specify it in bot_trading.configuration.py or as USERNAME env var")
+        f"Username `{USERNAME}` is not valid. Specify it in bot_trading.configuration.py or as USERNAME env var")

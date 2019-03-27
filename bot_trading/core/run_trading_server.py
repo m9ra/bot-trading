@@ -10,7 +10,7 @@ from flask_bootstrap import Bootstrap
 from bot_trading.core.configuration import TARGET_CURRENCY
 from bot_trading.core.data.parsing import make_pair
 
-os.environ["USERNAME"] = "system@email.cz"
+os.environ["BOT_USERNAME"] = "system@email.cz"
 
 from bot_trading.configuration import TRADING_ENDPOINT
 from bot_trading.core.data.storage_reader import StorageReader

@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from time import sleep
 from typing import Callable, List
 
@@ -36,6 +37,8 @@ class FeedWriter(object):
         while True:
             try:
                 self._run()
+            except StopIteration:
+                logging.info("StopIteration")
             except WebSocketConnectionClosedException:
                 logging.warning("Connection closed exception")
             except WebSocketBadStatusException:
@@ -64,8 +67,13 @@ class FeedWriter(object):
             }
         })
 
+        restart_interval = 360.0  # todo this is fix which limits influence of incorrect price changes
+        start_time = time.time()
         parsed_events = 0
         while True:
+            if time.time() - start_time > restart_interval:
+                raise StopIteration("preventive restart")
+
             data = self.receive()
             data_obj = json.loads(data)
 
@@ -91,7 +99,7 @@ class FeedWriter(object):
 
     def receive(self):
         data = self._ws.recv()
-        #self._logger.info(f"<< {data}")
+        # self._logger.info(f"<< {data}")
         return data
 
     def parse_event(self, data_obj: dict):
