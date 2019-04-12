@@ -1,6 +1,7 @@
 import os
 
 import tflearn
+from typing import List
 
 from bot_trading.bots.predictors.predictor_base import PredictorBase
 from bot_trading.trading.price_snapshot import PriceSnapshot
@@ -15,17 +16,22 @@ This is a sketch of neural predictor
 
 
 class NeuralPredictor(PredictorBase):
-    def _run_training(self, snapshot: PriceSnapshot):
-        self.training_data_length = 200000.0  # seconds into history that will be used for generating training data
+    def __init__(self, name):
+        super(NeuralPredictor, self).__init__()
+        self.model_name = f"trained_models/{name}"
+        self.training_data_length = 30000.0  # seconds into history that will be used for generating training data
         self.window_steps = 100  # how large window will be fed as the input
-        self.sample_period = 5.0  # how long apart the window samples will be
-        self.model_strength = 0.2  # inhibits strength of model predictions by keeping them close to current values
+        self.sample_period = 0.1  # how long apart the window samples will be
+        self.model_strength = 1.0  # inhibits strength of model predictions by keeping them close to current values
         self.target_factor = 1000.0  # is used for scaling output - this gives better loss readings
-        self.model_name = "trained_models/model_10s9"
+        self.lookahead = 10
+        self._model = None
+        self.currencies: List[str] = None
+
+    def _run_training(self, snapshot: PriceSnapshot):
+        # train model on pair window -> target (where target is the value after the predicted period)
 
         self.currencies = list(sorted(snapshot.non_target_currencies))
-
-        # train model on pair window -> target (where target is the value after the predicted period)
         self._model = self._get_model(snapshot)
 
     def _get_model(self, snapshot):
@@ -35,16 +41,18 @@ class NeuralPredictor(PredictorBase):
 
         # Network building
         net = tflearn.input_data(shape=[None, 2 * self.window_steps * currencies_len])
-        net = gaussian_noise_layer(net, 0.0001)
+        net = gaussian_noise_layer(net, 0.001)
 
-        net = tflearn.fully_connected(net, 200, activation='sigmoid')
+        net = tflearn.fully_connected(net, 300, activation='sigmoid')
         net = tflearn.batch_normalization(net)
+        net = tf.expand_dims(net, axis=-1)
+        net = tflearn.conv_1d(net, 64, 5)
         net = tflearn.fully_connected(net, 50, activation='sigmoid')
         net = tflearn.batch_normalization(net)
-        net = tflearn.fully_connected(net, 30, activation='relu')
+        net = tflearn.fully_connected(net, 30, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, currencies_len, activation='linear')
-        net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rate=0.001)
+        net = tflearn.regression(net, optimizer='adam', loss='mean_square', learning_rate=0.0005)
 
         # Training
         model = tflearn.DNN(net, tensorboard_verbose=0)
@@ -52,6 +60,9 @@ class NeuralPredictor(PredictorBase):
         if load_model:
             model.load(self.model_name)
             return model
+
+        if snapshot is None:
+            return model  # training is skipped
 
         print("TRAINING MODEL")
 
@@ -64,10 +75,12 @@ class NeuralPredictor(PredictorBase):
             c_sample = []
             c_target = []
 
-            lookahead = int(self.prediction_lookahead_seconds / self.sample_period) * 3
+            lookahead = int(self.lookahead / self.sample_period)
             for i in range(self.window_steps, len(samples) - lookahead, self.window_steps // 3):
-                # target = samples[i + lookahead][0] # direct target
-                target = max(s[0] for s in samples[i:i + lookahead])
+                target = samples[i + lookahead][0] # direct target
+                # target = np.sign(np.max([s[0] for s in samples[i:i + lookahead]]) - samples[i][0]) * samples[i][
+                #    0] * 0.01 + samples[i][0]
+                #target = np.max([s[0] for s in samples[i:i + lookahead]])
                 sample = samples[i - self.window_steps:i]
                 c_sample.append(sample)
                 c_target.append(target)
@@ -89,7 +102,7 @@ class NeuralPredictor(PredictorBase):
     def _get_prediction(self, c_sample):
         x = self._get_inputs([c_sample])
 
-        xs = [x[0]] * 20
+        xs = [x[0]] * 100
         ys = self._model.predict(xs)
         y = np.median(ys, axis=0)
 
@@ -100,7 +113,7 @@ class NeuralPredictor(PredictorBase):
             sample_mean = np.mean(sample)
             prediction.append((raw_y / self.target_factor) * sample_mean + sample_mean)
 
-            print(f"PREDICTION raw: {raw_y}, denorm: {prediction[-1]}")
+            # print(f"PREDICTION raw: {raw_y}, denorm: {prediction[-1]}")
 
         return prediction
 
@@ -152,10 +165,36 @@ class NeuralPredictor(PredictorBase):
             # if model_value < current_value:
             #    final_prediction = model_value  # don't underestimate low trends
 
-            print(f"diff {currency}: {model_value - current_value}")
+            # print(f"diff {currency}: {model_value - current_value}")
             result[currency] = final_prediction
 
         return result
+
+    def eva_initialization(self, snapshot: PriceSnapshot, prediction_lookahead_seconds: float):
+        self.target_currency = snapshot.target_currency
+        self.prediction_lookahead_seconds = prediction_lookahead_seconds
+        self.currencies = list(sorted(snapshot.non_target_currencies))
+        self._model = self._get_model(snapshot)
+        self._assigners = None
+
+    def get_parameters(self):
+        if not self._model:
+            self._model = self._get_model(None)
+
+        result = []
+        for variable in self._model.get_train_vars():
+            result.append(self._model.get_weights(variable))
+        return result
+
+    def set_parameters(self, parameters):
+        if not self._assigners:
+            self._assigners = []
+            for var in self._model.get_train_vars():
+                placeholder = tf.placeholder(var.dtype, shape=var.shape)
+                self._assigners.append((placeholder, tf.assign(var, placeholder)))
+
+        for assigner, parameter in zip(self._assigners, parameters):
+            self._model.session.run(assigner[1], feed_dict={assigner[0]: parameter})
 
 
 def gaussian_noise_layer(input_layer, std):

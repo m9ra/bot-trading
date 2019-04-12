@@ -14,7 +14,7 @@ LOG_LEVELS = {
     "PORTFOLIO"
 }
 
-LOCAL_DISK_CACHE_SIZE = 200_000_000 # maximum size of a cache file that saves network traffic (set to 0 for disabling)
+LOCAL_DISK_CACHE_SIZE = 400_000_000 # maximum size of a cache file that saves network traffic (set to 0 for disabling)
 
 USERNAME = "mvodolan@cz.ibm.com"  # FILL IN YOUR EMAIL ADDRESS email@is.username
 

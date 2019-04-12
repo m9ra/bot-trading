@@ -12,7 +12,7 @@ class PredictorBase(object):
         self._actual_unit_values: Dict[str, float] = None
 
     def _run_training(self, snapshot: PriceSnapshot):
-        raise NotImplementedError("must be overridden")
+        pass
 
     def _calculate_future_unit_values(self, present: PriceSnapshot) -> Dict[str, float]:
         raise NotImplementedError("must be overridden")
@@ -31,12 +31,16 @@ class PredictorBase(object):
         """
         Recalculates predictions according to given snapshot of prices.
         """
+
         future_values = self._calculate_future_unit_values(present)
         self._actual_unit_values = dict(future_values)
 
     def get_value(self, fund):
         if fund.currency == self.target_currency:
             return fund  # value of target currency can't change because value is relative to target currency
+
+        if self.target_currency is None:
+            raise AssertionError("target_currency is not initialized")
 
         predicted_value = self._actual_unit_values[fund.currency] * fund.amount
         return Fund(predicted_value, self.target_currency)
