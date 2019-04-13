@@ -56,6 +56,7 @@ class PrecalculatedStrategyBot(BotBase):
 
     def _has_sell_indicator(self, i, c_data, lookahead):
         v_i = c_data[i]
+        max_ratio = 0
         for k in range(lookahead):
             j = i + k
             v_j = c_data[j]
@@ -65,6 +66,12 @@ class PrecalculatedStrategyBot(BotBase):
 
             if 1.0 - spread_ratio > sell_ratio:
                 return True
+
+            if sell_ratio > max_ratio:
+                max_ratio = sell_ratio
+
+        if max_ratio < 1.0:
+            return True # there is no point of holding this
 
         return False
 
@@ -80,7 +87,7 @@ class PrecalculatedStrategyBot(BotBase):
             spread_ratio = (v_j[1] - v_j[0]) / v_i[1]
             buy_ratio = v_j[1] / v_i[1]
 
-            if 1.0 + spread_ratio * 2 < buy_ratio:
+            if 1.0 + spread_ratio * 4 < buy_ratio:
                 return True
 
     def _known_sell(self, i, sells, lookahead):
@@ -176,7 +183,7 @@ class PrecalculatedStrategyBot(BotBase):
 
     def add_noise(self):
         for currency in self._sell_strategy:
-            for i in range(1500):
+            for i in range(1000):
                 self._sell_strategy[currency].add(np.random.random_integers(0, self._data_size))
                 self._buy_strategy[currency].add(np.random.random_integers(0, self._data_size))
 

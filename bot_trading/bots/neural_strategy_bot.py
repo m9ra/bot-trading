@@ -25,8 +25,8 @@ class NeuralStrategyBot(BotBase):
     def create_model(self):
 
         ## version 6
-        #self.window_size = 200
-        #self.step = [i * 20 for i in range(self.window_size)]
+        # self.window_size = 200
+        # self.step = [i * 20 for i in range(self.window_size)]
 
         # version 4
         self.window_size = 100
@@ -47,7 +47,7 @@ class NeuralStrategyBot(BotBase):
         net = tflearn.fully_connected(net, 3000, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.dropout(net, keep_prob=0.7)
-        net = tflearn.fully_connected(net, 500, activation='sigmoid')
+        net = tflearn.fully_connected(net, 1000, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, 300, activation='sigmoid')
         net = tflearn.batch_normalization(net)
@@ -76,8 +76,8 @@ class NeuralStrategyBot(BotBase):
             fund = portfolio.get_fund_with(currency)
             profitable_fund = portfolio.get_fund_with(currency, gain_greater_than=1.001)
 
-            open_threshold = 0.7 + signal_variance
-            close_threshold = -0.95
+            open_threshold = 0.4 + signal_variance
+            close_threshold = -0.8
             if profitable_fund:
                 close_threshold *= 1.0
 
@@ -151,10 +151,10 @@ class NeuralStrategyBot(BotBase):
 
         data_length = len(next(iter(data.values())))
 
-        data_point_indexes = random.sample(range(self.step_boundary, data_length),
-                                           training_sample_count + validation_sample_count)
-        training_indexes = data_point_indexes[:training_sample_count]
-        validation_indexes = data_point_indexes[training_sample_count:]
+        data_point_indexes = list(sorted(random.sample(range(self.step_boundary, data_length),
+                                                       training_sample_count + validation_sample_count)))
+        validation_indexes = data_point_indexes[:validation_sample_count]
+        training_indexes = data_point_indexes[validation_sample_count:]
 
         print("Data generation")
         t_xs, t_ys = self.get_formatted_data(data, training_indexes, strategy)

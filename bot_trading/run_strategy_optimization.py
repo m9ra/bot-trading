@@ -9,6 +9,7 @@ market, observer = create_trading_env(PEEK_MODE, READ_MODE)
 market.run_async()
 
 SAMPLE_FILE = "strategy_samples_12-04-11_30.bin"
+#SAMPLE_FILE = "strategy_samples_1.bin"
 SAMPLING_PERIOD = 0.5
 
 
@@ -27,10 +28,10 @@ def main():
 
     bot = PrecalculatedStrategyBot(samples)
     bot.calculate_strategy()
-    bot.export_strategy("strategy_1-12-04-11_30.bin")
-    return
+    bot.export_strategy("strategy_2-12-04-11_30.bin")
+    #return
 
-    # bot.plot()
+    bot.plot()
     print("Optimization starts")
     optimize_with_samples(bot, samples, samples["meta"]["length_in_hours"], market.present)
 

@@ -97,8 +97,10 @@ class FastPortfolio(object):
         self._positions[converted.currency].amount += converted_amount
         self._positions[converted.currency].initial_value += value
 
-        rev_converted = self.present.after_conversion(converted, fund.currency)
-        print(f"\t {fund} -> {converted} | {rev_converted}")
+        fa = f"{fund.amount:.8f}"[:8]
+        ca = f"{converted.amount:.8f}"[:8]
+
+        print(f"\t {fa} {fund.currency} -> {ca} {converted.currency}")
 
     def _sell_to_target(self, amount, currency, current_tick):
         if currency == self.target_currency:

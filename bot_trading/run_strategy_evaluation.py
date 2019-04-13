@@ -5,13 +5,16 @@ from bot_trading.bots.predictors.oraculum_predictor import OraculumPredictor
 
 samples = load_samples("strategy_samples_1.bin")
 
-# bot = PrecalculatedStrategyBot(samples)
-# bot.import_strategy("strategy_1.bin")
+#bot = PrecalculatedStrategyBot(samples)
+#bot.import_strategy("strategy_1.bin") # strategy2: 1086, strategy1: 1094
+##bot.add_noise() # strategy2: 1018 ,strategy1: 1032
+#fast_backtest(bot, samples)
+#exit()
 
 from bot_trading.bots.neural_strategy_bot import NeuralStrategyBot
 
 bot = NeuralStrategyBot()
-bot.load("trained_models/ns_bot_5-12-04-11_30.bin", samples["data"].keys(), 0.5)
+bot.load("trained_models/ns_bot_6b-12-04-11_30.bin", samples["data"].keys(), 0.5)
 #bot = PredictorBot(OraculumPredictor())
 
 fast_backtest(bot, samples)
