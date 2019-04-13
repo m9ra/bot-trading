@@ -11,6 +11,6 @@ from bot_trading.bots.eva.optimizer import load_samples
 samples = load_samples("strategy_samples_1.bin")
 
 bot = NeuralStrategyBot()
-bot.load("trained_models/ns_bot_4-12-04-11_30.bin", samples["data"].keys(), 0.5)
+bot.load("trained_models/ns_bot_5-12-04-11_30.bin", samples["data"].keys(), 0.5)
 run_real_trades(bot)
 
