@@ -131,7 +131,7 @@ class PortfolioController(object):
 
         return result
 
-    def get_fund_with(self, currency, gain_greater_than: float, force_include_target=True) -> Optional[Fund]:
+    def get_fund_with(self, currency, gain_greater_than: float = 0.0, force_include_target=True) -> Optional[Fund]:
         if currency == self.target_currency and force_include_target:
             return Fund(self._currency_positions[currency].total_amount, currency)
 

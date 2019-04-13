@@ -34,7 +34,7 @@ def future_value(fund: Fund, target_currency: str, present: PriceSnapshot, futur
     #    converted_fund = Fund(converted_fund.amount * 0.99, converted_fund.currency)
 
     value = future.get_value(converted_fund)
-    print(f"{converted_fund} value estimation: {value}")
+    #print(f"{converted_fund} value estimation: {value}")
 
     return value
 

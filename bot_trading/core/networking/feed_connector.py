@@ -71,8 +71,8 @@ class FeedWriter(object):
         start_time = time.time()
         parsed_events = 0
         while True:
-            if time.time() - start_time > restart_interval:
-                raise StopIteration("preventive restart")
+            #if time.time() - start_time > restart_interval:
+            #    raise StopIteration("preventive restart")
 
             data = self.receive()
             data_obj = json.loads(data)

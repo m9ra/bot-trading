@@ -41,7 +41,11 @@ class ConnectorBase(object):
 
     def _read_entries(self):
         while True:
-            yield self.blocking_get_next_entry()
+            try:
+                yield self.blocking_get_next_entry()
+            except StopIteration:
+                break
+
 
     def run(self):
         for entry in self._read_entries():

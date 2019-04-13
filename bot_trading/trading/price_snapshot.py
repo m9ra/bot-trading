@@ -95,21 +95,22 @@ class PriceSnapshot(object):
 
         end_timestamp = end_timestamp or self._market.current_time
         current_time = self._current_time
-        while current_time < end_timestamp:
+        while current_time <= end_timestamp:
             pricebook.fast_forward_to(current_time)
             result.append(pricebook.bid_ask[0])
             current_time += sampling_period
 
         return result
 
-    def get_unit_bid_ask_samples(self, currency: str, sampling_period: float, end_timestamp: float = None) -> List[Tuple[float,float]]:
+    def get_unit_bid_ask_samples(self, currency: str, sampling_period: float, end_timestamp: float = None) -> List[
+        Tuple[float, float]]:
         pricebook = self.get_pricebook(currency, self._market.target_currency)
 
         result = []
 
         end_timestamp = end_timestamp or self._market.current_time
         current_time = self._current_time
-        while current_time < end_timestamp:
+        while current_time <= end_timestamp:
             pricebook.fast_forward_to(current_time)
             result.append(pricebook.bid_ask)
             current_time += sampling_period
