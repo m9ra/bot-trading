@@ -9,4 +9,4 @@ bot.import_strategy("strategy_1-12-04-11_30.bin")
 strategy = bot.get_strategy_copy()
 
 bot = NeuralStrategyBot()
-bot.fit(samples, strategy, file_path="trained_models/ns_bot_6a.bin")
+bot.fit(samples, strategy, file_path="trained_models/ns_bot_7a.bin")

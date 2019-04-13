@@ -51,7 +51,7 @@ class NeuralStrategyBot(BotBase):
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, 100, activation='sigmoid')
         net = tflearn.batch_normalization(net)
-        net = tflearn.fully_connected(net, currencies_len, activation='tanh', bias=False)
+        net = tflearn.fully_connected(net, currencies_len, activation='tanh', bias=True)
         # net = tflearn.batch_normalization(net)
         net = tflearn.regression(net, optimizer='rmsprop', loss='mean_square', learning_rate=0.00001)
 
