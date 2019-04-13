@@ -44,16 +44,16 @@ class NeuralStrategyBot(BotBase):
         # net = tflearn.max_pool_1d(net,5)
         # net = tflearn.conv_1d(net, 500, 5)
 
-        net = tflearn.fully_connected(net, 3000, activation='sigmoid')
-        net = tflearn.batch_normalization(net)
-        net = tflearn.dropout(net, keep_prob=0.7)
         net = tflearn.fully_connected(net, 1000, activation='sigmoid')
         net = tflearn.batch_normalization(net)
-        net = tflearn.fully_connected(net, 300, activation='sigmoid')
+        net = tflearn.dropout(net, keep_prob=0.5)
+        net = tflearn.fully_connected(net, 500, activation='sigmoid')
+        net = tflearn.batch_normalization(net)
+        net = tflearn.fully_connected(net, 100, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, currencies_len, activation='tanh', bias=False)
         # net = tflearn.batch_normalization(net)
-        net = tflearn.regression(net, optimizer='rmsprop', loss='mean_square', learning_rate=0.0002)
+        net = tflearn.regression(net, optimizer='rmsprop', loss='mean_square', learning_rate=0.00001)
 
         # Training
         model = tflearn.DNN(net, tensorboard_verbose=0)
@@ -76,10 +76,10 @@ class NeuralStrategyBot(BotBase):
             fund = portfolio.get_fund_with(currency)
             profitable_fund = portfolio.get_fund_with(currency, gain_greater_than=1.001)
 
-            open_threshold = 0.4 + signal_variance
-            close_threshold = -0.8
+            open_threshold = 0.05+ signal_variance
+            close_threshold = -0.7
             if profitable_fund:
-                close_threshold *= 1.0
+                close_threshold *= 0.5
 
             if currency_signal < close_threshold and fund:
                 portfolio.request_transfer(fund, portfolio.target_currency)
@@ -144,8 +144,8 @@ class NeuralStrategyBot(BotBase):
 
         self._model = self.create_model()
 
-        validation_sample_count = 1000
-        training_sample_count = 50000
+        validation_sample_count = 150000
+        training_sample_count = 150000
 
         # todo last samples do not have valid strategy (it did not have enought lookahead)
 

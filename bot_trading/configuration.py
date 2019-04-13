@@ -2,7 +2,7 @@ import os
 
 # CONFIGURATION THAT CAN BE CHANGED FREELY
 
-TRADING_ENDPOINT = os.getenv("ENDPOINT", "packa2.cz:8697")
+TRADING_ENDPOINT = os.getenv("ENDPOINT", "46.234.106.29:8697")
 
 # defines which logging messeges will show up
 # values NETWORK, CACHE, EXECUTOR, COMMAND, PORTFOLIO

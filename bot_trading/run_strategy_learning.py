@@ -4,9 +4,9 @@ from bot_trading.bots.neural_strategy_bot import NeuralStrategyBot
 
 samples = load_samples("strategy_samples_12-04-11_30.bin")
 bot = PrecalculatedStrategyBot(samples)
-bot.import_strategy("strategy_2-12-04-11_30.bin")
+bot.import_strategy("strategy_1-12-04-11_30.bin")
 
 strategy = bot.get_strategy_copy()
 
 bot = NeuralStrategyBot()
-bot.fit(samples, strategy, file_path="trained_models/ns_bot_6b-12-04-11_30.bin")
+bot.fit(samples, strategy, file_path="trained_models/ns_bot_6a.bin")

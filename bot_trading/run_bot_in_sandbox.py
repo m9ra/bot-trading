@@ -12,5 +12,6 @@ from bot_trading.bots.eva.optimizer import load_samples
 samples = load_samples("strategy_samples_1.bin")
 
 bot = NeuralStrategyBot()
-bot.load("trained_models/ns_bot_2-12-04-11_30.bin", samples["data"].keys(), 0.5)
-run_sandbox_backtest(bot, start_hours_ago=5)
+bot.load("trained_models/ns_bot_6a.bin", samples["data"].keys(), 0.5)
+#run_sandbox_backtest(bot, start_hours_ago=5)
+run_sandbox_trades(bot)
