@@ -102,7 +102,7 @@ class NeuralStrategyBot(BotBase):
             open_threshold = min(0.9, open_threshold)
             close_threshold = min(0.9, close_threshold)
             if profitable_fund:
-                close_threshold *= 0.3
+                close_threshold *= 0.15
 
             debug_output.append(f"{close_threshold:.3f} < {currency_signal:.3f} < {open_threshold:.3f} {currency}")
 
