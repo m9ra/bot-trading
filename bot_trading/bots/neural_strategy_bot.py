@@ -14,13 +14,15 @@ class NeuralStrategyBot(BotBase):
 
     def save(self, file):
         self._model.save(file)
+        np.save(file + ".normalizer", self._normalizer)
 
     def load(self, file, currencies, sampling_period):
         self.currencies = list(sorted(currencies))
         self.sampling_period = sampling_period
 
-        self._model = self.create_model()
+        self._model, self._normalizer = self.create_model()
         self._model.load(file)
+        self._normalizer = np.load(file + ".normalizer.npy")
 
     def create_model(self):
 
@@ -39,11 +41,11 @@ class NeuralStrategyBot(BotBase):
         currencies_len = len(self.currencies)
 
         net = tflearn.input_data(shape=[None, self.window_size, 2 * currencies_len])
-        #net = tflearn.reshape(net, (-1, self.window_size * 2 * currencies_len))
-        #net = tflearn.lstm(net, 128)
-        #net = tflearn.conv_1d(net, 1000, 5)
-        #net = tflearn.max_pool_1d(net,5)
-        #net = tflearn.conv_1d(net, 500, 5)
+        # net = tflearn.reshape(net, (-1, self.window_size * 2 * currencies_len))
+        # net = tflearn.lstm(net, 128)
+        # net = tflearn.conv_1d(net, 1000, 5)
+        # net = tflearn.max_pool_1d(net,5)
+        # net = tflearn.conv_1d(net, 500, 5)
 
         net = tflearn.fully_connected(net, 3000, activation='sigmoid')
         net = tflearn.batch_normalization(net)
@@ -55,13 +57,15 @@ class NeuralStrategyBot(BotBase):
         net = tflearn.fully_connected(net, 50, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, currencies_len, activation='tanh', bias=True)
-        #net = tflearn.batch_normalization(net)
+        # net = tflearn.batch_normalization(net)
         net = tflearn.regression(net, optimizer='rmsprop', loss='mean_square', learning_rate=0.00001)
 
         # Training
         model = tflearn.DNN(net, tensorboard_verbose=0)
 
-        return model
+        normalizer = np.zeros(shape=(currencies_len, 2))
+
+        return model, normalizer
 
     def update_portfolio(self, portfolio: PortfolioController):
         windows = []
@@ -74,13 +78,21 @@ class NeuralStrategyBot(BotBase):
         variance = np.var(predictions, axis=0)
 
         for i, currency in enumerate(self.currencies):
+            opening_count = self._normalizer[0][i]
+            closing_count = self._normalizer[1][i]
+            total_count = opening_count + closing_count
+
+            opening_limit = opening_count / total_count
+            closing_limit = closing_count / total_count
+            limit_factor = 1.0
+
             currency_signal = prediction[i]
             signal_variance = variance[i]
             fund = portfolio.get_fund_with(currency)
             profitable_fund = portfolio.get_fund_with(currency, gain_greater_than=1.001)
 
-            open_threshold = 0.2 + signal_variance
-            close_threshold = -0.9
+            open_threshold = opening_limit * limit_factor + signal_variance
+            close_threshold = -closing_limit * limit_factor * 0.5
             if profitable_fund:
                 close_threshold *= 0.6
 
@@ -140,12 +152,12 @@ class NeuralStrategyBot(BotBase):
 
         return 0.0
 
-    def fit(self, samples, strategy, file_path):
+    def fit(self, samples, strategy, file_path, validator=None):
         data = samples["data"]
         self.currencies = list(sorted(data))
         self.sampling_period = samples["meta"]["period_in_seconds"]
 
-        self._model = self.create_model()
+        self._model, self._normalizer = self.create_model()
 
         validation_sample_count = 1500
         training_sample_count = 150000
@@ -165,20 +177,26 @@ class NeuralStrategyBot(BotBase):
 
         callbacks = []
         if file_path:
-            callbacks.append(SaveCallback(self, file_path))
+            callbacks.append(SaveCallback(self, file_path, validator))
 
+        self._normalizer = np.array([np.sum(np.clip(t_ys, 0, 1), axis=0), np.sum(np.clip(t_ys, -1, 0), axis=0) * -1])
         self._model.fit(t_xs, t_ys, validation_set=(v_xs, v_ys), n_epoch=100, shuffle=True, callbacks=callbacks)
 
 
 class SaveCallback(Callback):
-    def __init__(self, bot, file_path):
+    def __init__(self, bot, file_path, validator):
         super().__init__()
         self._bot = bot
+        self._validator = validator
         self._file_path = file_path
         self._saved_val_loss = float("inf")
 
     def on_epoch_end(self, training_state):
-        if True or training_state.val_loss < self._saved_val_loss:
+        value = training_state.val_loss
+        if self._validator:
+            value = self._validator()
+
+        if value < self._saved_val_loss:
             self._bot.save(self._file_path)
-            self._saved_val_loss = training_state.val_loss
-            print(f"Model saved with loss: {self._saved_val_loss}")
+            self._saved_val_loss = value
+            print(f"Model saved with value: {self._saved_val_loss}. Validation loss: {training_state.val_loss}.")

@@ -103,8 +103,9 @@ def evaluate(bot, individual, portfolio, run_start, run_end):
     print(f"TOTAL: {individual['fitness']}")
 
 
-def fast_backtest(bot, samples):
+def fast_backtest(bot, samples, verbose_portfolio=True):
     portfolio = FastPortfolio(samples, INITIAL_AMOUNT, TARGET_CURRENCY)
+    portfolio.verbose = verbose_portfolio
     portfolio.set_tick(0)
     bot.initialize(portfolio)
 
@@ -120,12 +121,14 @@ def fast_backtest(bot, samples):
             i += step_tick_count
         except TickNotAvailableException as e:
             i += e.missing_tick
-        #except IndexError:
+        # except IndexError:
         #    print("Index error stopping")
         #    break
 
     print(f"FINAL VALUE {portfolio.total_value} {TARGET_CURRENCY}")
     print(f"POSITIONS: {portfolio._positions}")
+
+    return portfolio.total_value - INITIAL_AMOUNT
 
 
 def activate(bot, individual):

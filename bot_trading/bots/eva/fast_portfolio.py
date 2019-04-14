@@ -20,6 +20,7 @@ class FastPortfolio(object):
         self.target_currency = target_currency
         self._non_target_currencies = list(self._prices.keys())
         self._currencies = self._non_target_currencies + [self.target_currency]
+        self.verbose = False
 
     def get_copy(self):
         copy = FastPortfolio(self._samples, 0, self.target_currency)
@@ -96,6 +97,9 @@ class FastPortfolio(object):
 
         self._positions[converted.currency].amount += converted_amount
         self._positions[converted.currency].initial_value += value
+
+        if not self.verbose:
+            return
 
         fa = f"{fund.amount:.8f}"[:8]
         ca = f"{converted.amount:.8f}"[:8]
