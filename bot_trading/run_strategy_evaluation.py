@@ -14,7 +14,7 @@ samples = load_samples("strategy_samples_1.bin")
 from bot_trading.bots.neural_strategy_bot import NeuralStrategyBot
 
 bot = NeuralStrategyBot()
-bot.load("trained_models/ns_bot_7a.bin", samples["data"].keys(), 0.5)
+bot.load("trained_models/ns_bot_8b.bin", samples["data"].keys(), 0.5)
 #bot = PredictorBot(OraculumPredictor())
 
 fast_backtest(bot, samples)

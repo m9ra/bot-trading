@@ -39,20 +39,23 @@ class NeuralStrategyBot(BotBase):
         currencies_len = len(self.currencies)
 
         net = tflearn.input_data(shape=[None, self.window_size, 2 * currencies_len])
-        net = tflearn.reshape(net, (-1, self.window_size * 2 * currencies_len))
-        # net = tflearn.conv_1d(net, 1000, 5)
-        # net = tflearn.max_pool_1d(net,5)
-        # net = tflearn.conv_1d(net, 500, 5)
+        #net = tflearn.reshape(net, (-1, self.window_size * 2 * currencies_len))
+        #net = tflearn.lstm(net, 128)
+        #net = tflearn.conv_1d(net, 1000, 5)
+        #net = tflearn.max_pool_1d(net,5)
+        #net = tflearn.conv_1d(net, 500, 5)
 
-        net = tflearn.fully_connected(net, 1000, activation='sigmoid')
+        net = tflearn.fully_connected(net, 3000, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.dropout(net, keep_prob=0.5)
         net = tflearn.fully_connected(net, 500, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, 100, activation='sigmoid')
         net = tflearn.batch_normalization(net)
+        net = tflearn.fully_connected(net, 50, activation='sigmoid')
+        net = tflearn.batch_normalization(net)
         net = tflearn.fully_connected(net, currencies_len, activation='tanh', bias=True)
-        # net = tflearn.batch_normalization(net)
+        #net = tflearn.batch_normalization(net)
         net = tflearn.regression(net, optimizer='rmsprop', loss='mean_square', learning_rate=0.00001)
 
         # Training
@@ -76,10 +79,10 @@ class NeuralStrategyBot(BotBase):
             fund = portfolio.get_fund_with(currency)
             profitable_fund = portfolio.get_fund_with(currency, gain_greater_than=1.001)
 
-            open_threshold = 0.05+ signal_variance
-            close_threshold = -0.7
+            open_threshold = 0.2 + signal_variance
+            close_threshold = -0.9
             if profitable_fund:
-                close_threshold *= 0.5
+                close_threshold *= 0.6
 
             if currency_signal < close_threshold and fund:
                 portfolio.request_transfer(fund, portfolio.target_currency)
@@ -144,7 +147,7 @@ class NeuralStrategyBot(BotBase):
 
         self._model = self.create_model()
 
-        validation_sample_count = 150000
+        validation_sample_count = 1500
         training_sample_count = 150000
 
         # todo last samples do not have valid strategy (it did not have enought lookahead)
@@ -175,7 +178,7 @@ class SaveCallback(Callback):
         self._saved_val_loss = float("inf")
 
     def on_epoch_end(self, training_state):
-        if training_state.val_loss < self._saved_val_loss:
+        if True or training_state.val_loss < self._saved_val_loss:
             self._bot.save(self._file_path)
             self._saved_val_loss = training_state.val_loss
             print(f"Model saved with loss: {self._saved_val_loss}")
