@@ -11,6 +11,10 @@ from bot_trading.trading.portfolio_controller import PortfolioController
 
 
 class NeuralStrategyBot(BotBase):
+    def __init__(self):
+        super().__init__()
+
+        self.verbose = False
 
     def save(self, file):
         self._model.save(file)
@@ -47,7 +51,7 @@ class NeuralStrategyBot(BotBase):
         # net = tflearn.max_pool_1d(net,5)
         # net = tflearn.conv_1d(net, 500, 5)
 
-        net = tflearn.fully_connected(net,5000, activation='sigmoid')
+        net = tflearn.fully_connected(net, 5000, activation='sigmoid')
         net = tflearn.batch_normalization(net)
         net = tflearn.dropout(net, keep_prob=0.8)
         net = tflearn.fully_connected(net, 500, activation='sigmoid')
@@ -73,6 +77,8 @@ class NeuralStrategyBot(BotBase):
             window = self.get_formatted_window(portfolio.present.get_snapshot(seconds_back=i))
             windows.append(window)
 
+        debug_output = []
+
         predictions = self._model.predict(windows)
         prediction = np.mean(predictions, axis=0)
         variance = np.var(predictions, axis=0)
@@ -92,11 +98,13 @@ class NeuralStrategyBot(BotBase):
             profitable_fund = portfolio.get_fund_with(currency, gain_greater_than=1.001)
 
             open_threshold = opening_limit * limit_factor + signal_variance
-            close_threshold = -closing_limit * limit_factor * 1.0 
+            close_threshold = -closing_limit * limit_factor * 1.0
             open_threshold = min(0.9, open_threshold)
             close_threshold = min(0.9, close_threshold)
             if profitable_fund:
                 close_threshold *= 0.3
+
+            debug_output.append(f"{close_threshold:.3f} < {currency_signal:.3f} < {open_threshold:.3f} {currency}")
 
             if currency_signal < close_threshold and fund:
                 portfolio.request_transfer(fund, portfolio.target_currency)
@@ -106,6 +114,9 @@ class NeuralStrategyBot(BotBase):
                     continue
 
                 portfolio.request_transfer(budget.soft_cap_to(200.0), currency)
+
+        if self.verbose:
+            print(" | ".join(debug_output))
 
     def get_formatted_window(self, snapshot):
         window = np.empty(shape=(self.window_size, len(self.currencies) * 2))
