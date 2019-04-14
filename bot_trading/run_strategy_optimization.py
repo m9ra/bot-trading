@@ -8,8 +8,8 @@ from bot_trading.core.runtime.execution import create_trading_env, READ_MODE, PE
 market, observer = create_trading_env(PEEK_MODE, READ_MODE)
 market.run_async()
 
-SAMPLE_FILE = "strategy_samples_12-04-11_30.bin"
-#SAMPLE_FILE = "strategy_samples_1.bin"
+SAMPLE_FILE = "data_13-04-20_00.bin"
+# SAMPLE_FILE = "strategy_samples_1.bin"
 SAMPLING_PERIOD = 0.5
 
 
@@ -18,9 +18,9 @@ def main():
     if not samples:
         print("CREATING SAMPLES")
         # samples = create_samples(1554495398.6071417+12.0*3600, length_in_hours=12.0, period_in_seconds=SAMPLING_PERIOD)
-        samples_length_in_hours = 168.0
+        samples_length_in_hours = 2.0 * 168.0
         samples = create_samples(
-            1555061600 - samples_length_in_hours * 3600,
+            1555179300 - samples_length_in_hours * 3600,
             length_in_hours=samples_length_in_hours,
             period_in_seconds=SAMPLING_PERIOD
         )
@@ -29,7 +29,7 @@ def main():
     bot = PrecalculatedStrategyBot(samples)
     bot.calculate_strategy()
     bot.export_strategy("strategy_2-12-04-11_30.bin")
-    #return
+    # return
 
     bot.plot()
     print("Optimization starts")
