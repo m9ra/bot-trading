@@ -6,7 +6,7 @@ samples = load_samples("strategy_samples_12-04-11_30.bin")
 validation_samples = load_samples("strategy_samples_1.bin")
 
 bot = PrecalculatedStrategyBot(samples)
-bot.import_strategy("strategy_1-12-04-11_30.bin")
+bot.import_strategy("strategy_2-12-04-11_30.bin")
 
 strategy = bot.get_strategy_copy()
 
