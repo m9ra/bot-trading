@@ -20,11 +20,11 @@ from bot_trading.core.web.score_record import ScoreRecord
 
 EXCHANGE_NAME = sys.argv[1]
 
-supported_pairs = ["XRP/EUR", "XMR/EUR", "ETH/EUR", "REP/EUR", "XBT/EUR", "XLM/EUR"]
+
 history_cache = {}
 readers = []
 print("Preparing readers")
-for pair in supported_pairs:
+for pair in SERVER_SUPPORTED_PAIRS:
     print(f"\t {pair}")
     storage = StorageReader(pair)
     readers.append(storage)
@@ -58,7 +58,7 @@ def portfolio_values():
 
 @web_server.route("/graphs")
 def graphs():
-    return render_template("graphs.html", supported_pairs=supported_pairs)
+    return render_template("graphs.html", supported_pairs=SERVER_SUPPORTED_PAIRS)
 
 
 @web_server.route("/live_graph/<c1>/<c2>")
@@ -111,7 +111,7 @@ def pricebook_table():
 def index():
     endpoint = TRADING_ENDPOINT
     return render_template("index.html", exchange_name=EXCHANGE_NAME, endpoint=endpoint,
-                           supported_pairs=supported_pairs)
+                           supported_pairs=SERVER_SUPPORTED_PAIRS)
 
 
 @web_server.route("/portfolio_values_data")
