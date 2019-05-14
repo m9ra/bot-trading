@@ -5,14 +5,14 @@ class PricebookProcessorState(object):
 
         self._buy_container = None
         self._sell_container = None
-        self._w_buy_container = {}
-        self._w_sell_container = {}
+        self._buffer = []
 
     def create_pricebook_processor_data(self):
-        buy_container, w_buy_container = self._create_containers(self._buy_container, self._w_buy_container)
-        sell_container, w_sell_container = self._create_containers(self._sell_container, self._w_sell_container)
+        buy_container = self._replicate_container(self._buy_container)
+        sell_container = self._replicate_container(self._sell_container)
+        buffer = list(self._buffer)
 
-        return buy_container, sell_container, w_buy_container, w_sell_container
+        return buy_container, sell_container, buffer
 
     def inject_to(self, processor):
         data = self.create_pricebook_processor_data()
@@ -20,16 +20,9 @@ class PricebookProcessorState(object):
 
     def load_from(self, processor):
         data = processor.get_dump()
-        self._buy_container, self._sell_container = self._create_containers(data[0], data[1])
-        self._w_buy_container, self._w_sell_container = self._create_containers(data[2], data[3])
-
-    def _create_containers(self, container, w_container):
-        if container is w_container:
-            result = self._replicate_container(container)
-            return result, result
-
-        else:
-            return self._replicate_container(container), self._replicate_container(w_container)
+        self._buy_container = self._replicate_container(data[0])
+        self._sell_container = self._replicate_container(data[1])
+        self._buffer = list(data[2])
 
     def _replicate_container(self, container):
         if container is None:

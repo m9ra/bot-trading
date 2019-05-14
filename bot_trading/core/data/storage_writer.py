@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Tuple
+from typing import Tuple, List
 
 from bot_trading.core.data.parsing import get_pair_id
 from bot_trading.core.data.trade_entry import TradeEntry
@@ -30,6 +30,8 @@ class StorageWriter(object):
         self._next_entry_index = self._load_entry_index()
         self._pricebook = PricebookProcessor(self._pair)
         self._current_file = None
+
+        self._buffer: List[TradeEntry] = []
 
     def _load_entry_index(self):
         i = 0
@@ -63,17 +65,27 @@ class StorageWriter(object):
         return open(abs_path, "ab")
 
     def write(self, is_buy: bool, price: float, volume: float, timestamp: float):
-        self._handle_write(is_buy, price, volume, timestamp, is_reset=False)
+        entry = TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, False, is_flush=False)
+        self._buffer.append(entry)
 
     def reset(self, is_buy):
-        self._handle_write(is_buy, 0.0, 0.0, datetime.datetime.utcnow().timestamp(), is_reset=True)
+        entry = TradeEntry.create_entry(self._pair, is_buy, 0.0, 0.0, datetime.datetime.utcnow().timestamp(),
+                                        is_reset=True, is_flush=False)
+        self._buffer.append(entry)
 
     def flush(self):
+        if not self._buffer:
+            return  # nothing to do here
+
+        self._buffer[-1].is_flush_entry = True
+        for entry in self._buffer:
+            self._handle_write(entry)
+
+        self._buffer = []
+
         self._current_file.flush()
 
-    def _handle_write(self, is_buy, price, volume, timestamp, is_reset):
-        entry = TradeEntry.create_entry(self._pair, is_buy, price, volume, timestamp, is_reset, is_service=False)
-
+    def _handle_write(self, entry):
         self._pricebook.accept(entry)
 
         need_new_file = self._next_entry_index % self.file_entry_count == 0

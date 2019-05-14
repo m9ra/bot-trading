@@ -13,17 +13,14 @@
 </div>
 
 <script>
+    function refreshGraph() {
+        $(this).clearQueue();
+        $.getJSON("/portfolio_values_data", function (json) {
+            showPortfolioValuesGraph("graph_slot", json);
+            setTimeout(refreshGraph, 60000);
+        });
+    }
 
-
-function refreshGraph(){
-    $(this).clearQueue();
-    $.getJSON("/portfolio_values_data", function( json ) {
-        showPortfolioValuesGraph("graph_slot", json);
-        setTimeout(refreshGraph, 10000);
-    });
-}
-refreshGraph();
-
-
+    refreshGraph();
 </script>
 {% endblock %}

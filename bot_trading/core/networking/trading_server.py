@@ -61,7 +61,7 @@ class TradingServer(object):
 
     def load_portfolio_values(self):
         cursor = self._collection.portfolio_values.find({})
-        return cursor.sort("timestamp", -1).limit(1000)
+        return cursor.sort("timestamp", -1).limit(5000)
 
     def load_accounts(self):
         with self._L_collection:
@@ -170,7 +170,7 @@ class TradingServer(object):
                     self._collection.users.update({"_id": username}, update)
                     values.append((username, value))
 
-            if i % 10 == 0:
+            if i % 60 == 0:
                 # log portfolio values
                 self._collection.portfolio_values.insert({
                     "timestamp": time.time(),

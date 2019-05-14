@@ -26,4 +26,4 @@ try:
     validate_email(USERNAME)
 except:
     raise AssertionError(
-        f"Username `{USERNAME}` is not valid. Specify it in bot_trading.configuration.py or as USERNAME env var")
+        f"Username `{USERNAME}` is not valid. Specify it in bot_trading.configuration.py or as BOT_USERNAME env var")

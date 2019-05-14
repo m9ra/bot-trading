@@ -1,4 +1,4 @@
-from bot_trading.configuration import TRACKED_PAIRS
+from bot_trading.core.configuration import TRACKED_PAIRS
 from bot_trading.core.data.storage_reader import StorageReader
 from bot_trading.core.data.storage_writer import StorageWriter
 
@@ -14,5 +14,5 @@ for pair in TRACKED_PAIRS:
         entry_index = bucket_index * StorageWriter.bucket_entry_count
         entry = reader.get_entry(entry_index)
 
-        if not entry.is_service_entry:
+        if not entry.is_reset:
             print(f"\t\t {pair} entry at position {entry_index} is not service entry")

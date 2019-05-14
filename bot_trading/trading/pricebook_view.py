@@ -42,7 +42,6 @@ class PricebookView(object):
         return self._processor.is_ready
 
     def fast_forward_to(self, timestamp):
-        previous_entry = None
         while True:
             entry = self._reader.get_entry(self._current_index)
             if entry is None:
@@ -55,16 +54,9 @@ class PricebookView(object):
 
             if entry.timestamp > timestamp:
                 if self._processor.is_book_available:
-                    if not entry.is_service_entry:
-                        # we can obviously stop here
-                        return True
-
-                    if previous_entry and not previous_entry.is_service_entry:
-                        # on the edge between service entries -> stop is allowed before service block
-                        return True
+                    return True
 
             self._process_entry(entry)
-            previous_entry = entry
 
     def forward_to_next_change(self):
         entry = self._reader.get_entry(self._current_index)

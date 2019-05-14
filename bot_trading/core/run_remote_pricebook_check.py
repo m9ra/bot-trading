@@ -41,9 +41,6 @@ for reader in readers:
 
         # print(f"\r \t {timestamp_to_datetime(processor.current_time)}  entry: {i}             ", end="")
 
-        if processor.is_in_service_entry_area:
-            continue
-
         is_initialized = is_initialized or processor.current_depth == BOOK_DEPTH
         if not is_initialized:
             pass

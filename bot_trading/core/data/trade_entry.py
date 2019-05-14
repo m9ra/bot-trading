@@ -16,22 +16,19 @@ class TradeEntry(object):
         # buy_byte + 8b price + 8b volume + 8b timestamp
         info_byte, self.price, self.volume, self.timestamp = struct.unpack("<Bddd", chunk)
 
-        self.is_reset = False
-        self.is_service_entry = False
-
         self.is_buy = bool(info_byte & 1)
         self.is_reset = bool(info_byte & 2)
-        self.is_service_entry = bool(info_byte & 4)
+        self.is_flush_entry = bool(info_byte & 4)
 
-        if self.is_reset and not self.is_service_entry:
+        if self.is_reset and not self.is_flush_entry:
             self.real_utc_timestamp = self.timestamp
 
     @classmethod
-    def create_chunk(cls, is_buy, price, volume, timestamp, is_reset, is_service):
+    def create_chunk(cls, is_buy, price, volume, timestamp, is_reset, is_flush):
         info_byte = 1 if is_buy else 0
         if is_reset:
             info_byte |= 2
-        if is_service:
+        if is_flush:
             info_byte |= 4
 
         chunk = [info_byte] + cls.float_to_8b(price) + cls.float_to_8b(volume) + cls.float_to_8b(timestamp)
@@ -40,11 +37,11 @@ class TradeEntry(object):
     @classmethod
     def to_chunk(cls, entry: 'TradeEntry'):
         return cls.create_chunk(entry.is_buy, entry.price, entry.volume, entry.timestamp,
-                                entry.is_reset, entry.is_service_entry)
+                                entry.is_reset, entry.is_flush_entry)
 
     @classmethod
-    def create_entry(cls, pair, is_buy, price, volume, timestamp, is_reset, is_service):
-        chunk = cls.create_chunk(is_buy, price, volume, timestamp, is_reset, is_service)
+    def create_entry(cls, pair, is_buy, price, volume, timestamp, is_reset, is_flush):
+        chunk = cls.create_chunk(is_buy, price, volume, timestamp, is_reset, is_flush)
         return TradeEntry(pair, chunk)
 
     def __repr__(self):
@@ -54,8 +51,8 @@ class TradeEntry(object):
         if self.is_reset:
             result = "reset " + result
 
-        if self.is_service_entry:
-            result = "is_service " + result
+        if self.is_flush_entry:
+            result = "is_flush " + result
 
         return result
 

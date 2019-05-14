@@ -7,7 +7,7 @@ from collections import defaultdict
 from flask import Flask, render_template, request
 from flask_bootstrap import Bootstrap
 
-from bot_trading.core.configuration import TARGET_CURRENCY
+from bot_trading.core.configuration import TARGET_CURRENCY, SERVER_SUPPORTED_PAIRS
 from bot_trading.core.data.parsing import make_pair
 
 os.environ["BOT_USERNAME"] = "system@email.cz"
