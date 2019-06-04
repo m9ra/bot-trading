@@ -60,6 +60,7 @@ class PricebookProcessor(ProcessorBase):
     def reset(self, is_buy):
         self._buy_container = {}
         self._sell_container = {}
+        # buffer doesn't need resets because all stuff enqueued earlier will be forgotten via container resets
 
     def write(self, is_buy, price, amount, timestamp):
         self._current_time = max(self._current_time, timestamp)
@@ -113,6 +114,7 @@ class PricebookProcessor(ProcessorBase):
         result = []
         result.extend(self._dump_container(self._buy_container, is_buy=True, is_index_entry=True))
         result.extend(self._dump_container(self._sell_container, is_buy=False, is_index_entry=False))
+        result.extend(self._buffer)
 
         if result:
             result[-1].is_flush_entry = True

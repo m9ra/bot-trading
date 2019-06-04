@@ -108,24 +108,32 @@ class FeedWriter(object):
                 raise AssertionError("Invalid subscription status")
 
     def parse_payload(self, data_obj):
+        print(data_obj)
         channel_id = data_obj[0]
-        payloads = data_obj[1:]
+        channel_name, pair_name = data_obj[-2:]
+        payloads = data_obj[1:-2]
+
         pair = self._channel_to_pair[channel_id]
         processor = self._pair_to_processor[pair]
         processor.log_network_data(data_obj)
 
         for payload in payloads:
-            for key, value in payload.items():
+            for key, values in payload.items():
                 if key not in ["as", "bs", "a", "b"]:
                     raise AssertionError("Unknown key " + key)
 
-                snapshot = len(key) == 2
-                is_buy = key[0] == "b"
+                for value in values:
+                    snapshot = len(key) == 2
+                    is_buy = key[0] == "b"
 
-                if snapshot:
-                    processor.reset(is_buy)
+                    if snapshot:
+                        processor.reset(is_buy)
 
-                for price_s, amount_s, timestamp_s in value:
+                    if len(value) == 4:
+                        republish_field = value[-1]
+                        value = value[:3]
+
+                    price_s, amount_s, timestamp_s = value
                     processor.write(is_buy, float(price_s), float(amount_s), float(timestamp_s))
 
         processor.flush()

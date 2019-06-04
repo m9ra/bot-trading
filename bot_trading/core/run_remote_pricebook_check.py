@@ -5,17 +5,19 @@ from bot_trading.core.processors.pricebook_processor import PricebookProcessor
 from bot_trading.trading.utils import timestamp_to_datetime
 
 observer = RemoteObserver(TRADING_ENDPOINT, "admin@cz.ibm.com", "no_password_yet")
-observer.connect()
+observer.connect(mode="reading")
 
 readers = observer.get_readers()
 market_pairs = observer.get_pairs()
 
+counter =0
 for reader in readers:
+    counter+=1
+    if counter<2:
+        continue
     print()
     print(f"CHECKING {reader.pair}")
-    if reader.pair != "XRP/EUR":
-        print("\t skipping because of test")
-        continue
+
     entry_count = reader.get_entry_count()
     if entry_count == 0:
         print("\t skipping empty reader")
@@ -28,10 +30,7 @@ for reader in readers:
     is_initialized = False
     last_entry = None
 
-    # for i in range(entry_count):
-    for i in range(1000):
-        i = i + 1390 * 1000
-
+    for i in range(entry_count):
         entry = reader.get_entry(i)
         print(entry)
         processor.accept(entry)
@@ -41,10 +40,8 @@ for reader in readers:
 
         # print(f"\r \t {timestamp_to_datetime(processor.current_time)}  entry: {i}             ", end="")
 
-        is_initialized = is_initialized or processor.current_depth == BOOK_DEPTH
-        if not is_initialized:
-            pass
-            #continue
+        if not processor2.is_ready:
+            continue
 
         buy_levels = list(processor.buy_levels)
         sell_levels = list(processor.sell_levels)
@@ -56,7 +53,7 @@ for reader in readers:
             print(str(processor2.sell_levels).replace("),", "\n"))
             print("BUYS")
             print(str(processor2.buy_levels).replace("),", "\n"))
-            # raise AssertionError("Incorrect market semantic detected")
+            raise AssertionError("Incorrect market semantic detected")
             print("Incorrect market semantic detected")
 
 print("CHECK COMPLETE")
